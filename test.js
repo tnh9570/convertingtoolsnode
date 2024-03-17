@@ -19,9 +19,6 @@ const mysqlConfig = {
     database: 'h00044'
 }
 
-function alermFunction (functionName) {
-  console.log(`${functionName} 가 진행중입니다.`)
-}
 
 // 현재시간을 나타내는 코드
 function getCurrentDateTimeString() {
@@ -112,7 +109,6 @@ async function writecustomerData(custData) {
     const costomerId = {}
     try{
       custData.forEach(async (data) => {
-        alermFunction('writecustomerData');
         const query = `
           INSERT INTO tcustomerpersonal (
             CUSTNAME, CUSTNO, CUSTJN, CUSTDOB, DOBTYPE, CUSTGENDER, CUSTREGDATE, CUSTFSTDATE, CUSTADDR11, CRTIME, 
@@ -184,7 +180,6 @@ async function writeSchedule(m, mdclInfoData) {
 
   try {
       for (const data of mdclInfoData) {
-          alermFunction('writeSchedule')
           if (data.CUST_NO === '') {
               // CUST_NO가 없으면 pass
               continue;
@@ -261,7 +256,6 @@ async function insertCustomerSchedule(scheduleMap, mdclData) {
 
   try {
       for (const data of mdclData) {
-          alermFunction('insertCustomerSchedule')
           if (data.CUST_NO === '') {
               continue; // CUST_NO가 없으면 skip
           }
@@ -350,7 +344,6 @@ async function writePaymentCard(m, rcptData) {
   try {
     const currentDateTimeString = getCurrentDateTimeString();
     for (const data of rcptData) {
-      alermFunction('writePaymentCard')
       if (data.CARD_RCPT_AMT <= 0){
         // cash, card구분
         continue;
@@ -416,7 +409,6 @@ async function writePaymentCash(m, rcptData) {
   try {
     const currentDateTimeString = getCurrentDateTimeString();
     for (const data of rcptData) {
-      alermFunction('writePaymentCash')
       if (data.CASH_RCPT_AMT <= 0){
         // cash, card구분
         continue;
@@ -479,7 +471,6 @@ async function writeDisease(m, sickData) {
   try {
     const currentDateTimeString = getCurrentDateTimeString();
     for (const data of sickData) {
-      alermFunction('writeDisease')
 
       if (data.CUST_NO === '') {
         // CUST_NO가 없으면 pass
@@ -530,7 +521,6 @@ async function writeMedicalItem(m, prscData) {
   try {
     const currentDateTimeString = getCurrentDateTimeString();
     for (const data of prscData) {
-      alermFunction('writeMedicalItem')
 
       if (data.CUST_NO === '') {
         // CUST_NO가 없으면 pass
@@ -593,8 +583,6 @@ async function writeCustomerMemoMdclRsv(m, mdclRsvData) {
   try {
     const currentDateTimeString = getCurrentDateTimeString();
     for (const data of mdclRsvData) {
-      alermFunction('writeCustomerMemoMdclRsv')
-
       if (data.CUST_NO === '') {
         // CUST_NO가 없으면 pass
         continue;
@@ -661,7 +649,6 @@ async function writeCustomerScheduleCrmCsttDtalCntn(m, crmCsttDtalCntnData) {
     const currentDateTimeString = getCurrentDateTimeString();
     for (const data of crmCsttDtalCntnData) {
 
-      alermFunction('writeCustomerScheduleCrmCsttDtalCntn')
       if (data.CUST_NO === '') {
         // CUST_NO가 없으면 pass
         continue;
@@ -729,7 +716,6 @@ async function writeCustomerScheduleStomCntn(m, crmCsttDtalCntnData) {
   try {
     const currentDateTimeString = getCurrentDateTimeString();
     for (const data of crmCsttDtalCntnData) {
-      alermFunction('writeCustomerScheduleStomCntn')
 
       if (data.CUST_NO === '') {
         // CUST_NO가 없으면 pass
@@ -798,7 +784,6 @@ async function writeCustomerMemoMdclDayMemo(m, mdclDayMemoData) {
   try {
     const currentDateTimeString = getCurrentDateTimeString();
     for (const data of mdclDayMemoData) {
-      alermFunction('writeCustomerMemoMdclDayMemo')
 
       if (data.CUST_NO === '') {
         // CUST_NO가 없으면 pass
@@ -862,7 +847,6 @@ async function writeCustomerMemoSprtRoomDlvrDtal(m, datas) {
   try {
     const currentDateTimeString = getCurrentDateTimeString();
     for (const data of datas) {
-      alermFunction('writeCustomerMemoSprtRoomDlvrDtal')
 
       if (data.CUST_NO === '') {
         // CUST_NO가 없으면 pass
@@ -930,7 +914,7 @@ async function main() {
         // schedule 작성 후 memo 추가 assent(명세서) 추가
         await insertCustomerSchedule(scheduleMap, mdclData);
 
-        // writePaymentCard수행
+        // writePaymentCard수행 
         await writePaymentCard(scheduleMap, rcptData);
 
         // writePaymentCash수행
