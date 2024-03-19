@@ -78,103 +78,7 @@ async function executeMySqlQuery(query, values) {
     }
 }
 
-// 전체데이터 실행코드
-// async function getfetchCustomer() {
-//     try {
-//         // sqlserver 연결
-//         await sql.connect(sqlConfig);
 
-//         // 실행쿼리
-//         const queries = [
-//             'SELECT * FROM CUST_INFO',
-//             'SELECT MI.*, MDS.* FROM MDCL_INFO MI INNER JOIN MDCL_DAY_SPE_CNTN MDS ON MI.CUST_NO = MDS.CUST_NO AND MI.ENTR_DAY = MDS.ENTR_DAY',
-//             'SELECT  * FROM MDCL_INFO',
-//             'SELECT  * FROM RCPT_INFO',
-//             'SELECT * FROM (SELECT P.*, I.ITNT_CD, I.KOR_NAME, I.ENG_NAME, ROW_NUMBER() OVER (ORDER BY P.CUST_NO, P.ENTR_DAY, P.SORT_NO) AS SN FROM SICK_CNTN P LEFT OUTER JOIN USE_SICK_INFO I ON P.USE_SICK_CD = I.USE_SICK_CD ) AS T',
-//             'SELECT * FROM ( SELECT CS.*, ISNULL(CS.CLAIM_CD, CS.USE_PRSC_CD) AS ITEMCODE, ISNULL(U.USE_NAME, CS.USE_PRSC_CD) AS ITEMTITLE, ROW_NUMBER() OVER (ORDER BY CS.CUST_NO, CS.MDCL_SEQNO, CS.PRSC_SEQNO) AS SN FROM PRSC_CNTN CS LEFT JOIN USE_PRSC_INFO U ON CS.USE_PRSC_CD = U.USE_PRSC_CD ) T',
-//             'SELECT * FROM ( SELECT M.*, ROW_NUMBER() OVER (ORDER BY M.RSV_DAY, M.CUST_NO, M.RSV_SEQNO) AS SN FROM MDCL_RSV M ) AS X',
-//             'SELECT * FROM ( SELECT  M.*, ROW_NUMBER() OVER (ORDER BY M.ENTR_DAY, M.CUST_NO, M.CSTT_SEQNO) AS SN FROM CRM_CSTT_DTAL_CNTN M ) AS X ',
-//             'SELECT * FROM ( SELECT  M.*, ROW_NUMBER() OVER (ORDER BY M.ENTR_DAY, M.CUST_NO, M.MDCL_SEQNO) AS SN FROM STOM_CNTN M ) AS X',
-//             'SELECT  * FROM MDCL_DAY_MEMO',
-//             'SELECT  * FROM SPRT_ROOM_DLVR_DTAL',
-
-//         ];
-
-//         // 데이터 가져오기
-//         const [custData,
-//             mdclDaySpeData,
-//             mdclInfoData,
-//             rcptData,
-//             sickData,
-//             prscData,
-//             mdclRsvData,
-//             crmCsttDtalCntnData,
-//             stomCntnData,
-//             mdclDayMemoData,
-//             sprtRoomDlvrDtalData] = await executeSqlQueries(queries);
-
-//         return {
-//             custData: custData.recordset, mdclDaySpeData: mdclDaySpeData.recordset, mdclInfoData: mdclInfoData.recordset, rcptData: rcptData.recordset, sickData: sickData.recordset
-//             , prscData: prscData.recordset, mdclRsvData: mdclRsvData.recordset, crmCsttDtalCntnData: crmCsttDtalCntnData.recordset, stomCntnData: stomCntnData.recordset,
-//             mdclDayMemoData: mdclDayMemoData.recordset, sprtRoomDlvrDtalData: sprtRoomDlvrDtalData.recordset
-//         };
-
-//     } catch (err) {
-//         console.error(err);
-//     } finally {
-//         // 연결 종료
-//         sql.close();
-//     }
-// }
-
-// test 100개 data
-async function getfetchCustomer100() {
-    try {
-        // sqlserver 연결
-        await sql.connect(sqlConfig);
-
-        // 실행쿼리
-        const queries = [
-            'SELECT TOP 100 * FROM CUST_INFO',
-            'SELECT TOP 100 MI.*, MDS.* FROM MDCL_INFO MI INNER JOIN MDCL_DAY_SPE_CNTN MDS ON MI.CUST_NO = MDS.CUST_NO AND MI.ENTR_DAY = MDS.ENTR_DAY',
-            'SELECT TOP 100  * FROM MDCL_INFO',
-            'SELECT TOP 100  * FROM RCPT_INFO',
-            'SELECT TOP 100 * FROM (SELECT P.*, I.ITNT_CD, I.KOR_NAME, I.ENG_NAME, ROW_NUMBER() OVER (ORDER BY P.CUST_NO, P.ENTR_DAY, P.SORT_NO) AS SN FROM SICK_CNTN P LEFT OUTER JOIN USE_SICK_INFO I ON P.USE_SICK_CD = I.USE_SICK_CD ) AS T',
-            'SELECT TOP 100 * FROM ( SELECT CS.*, ISNULL(CS.CLAIM_CD, CS.USE_PRSC_CD) AS ITEMCODE, ISNULL(U.USE_NAME, CS.USE_PRSC_CD) AS ITEMTITLE, ROW_NUMBER() OVER (ORDER BY CS.CUST_NO, CS.MDCL_SEQNO, CS.PRSC_SEQNO) AS SN FROM PRSC_CNTN CS LEFT JOIN USE_PRSC_INFO U ON CS.USE_PRSC_CD = U.USE_PRSC_CD ) T',
-            'SELECT TOP 100 * FROM ( SELECT M.*, ROW_NUMBER() OVER (ORDER BY M.RSV_DAY, M.CUST_NO, M.RSV_SEQNO) AS SN FROM MDCL_RSV M ) AS X',
-            'SELECT TOP 100 * FROM ( SELECT  M.*, ROW_NUMBER() OVER (ORDER BY M.ENTR_DAY, M.CUST_NO, M.CSTT_SEQNO) AS SN FROM CRM_CSTT_DTAL_CNTN M ) AS X ',
-            'SELECT TOP 100 * FROM ( SELECT  M.*, ROW_NUMBER() OVER (ORDER BY M.ENTR_DAY, M.CUST_NO, M.MDCL_SEQNO) AS SN FROM STOM_CNTN M ) AS X',
-            'SELECT TOP 100  * FROM MDCL_DAY_MEMO',
-            'SELECT TOP 100  * FROM SPRT_ROOM_DLVR_DTAL',
-
-        ];
-
-        // 데이터 가져오기
-        const [custData,
-            mdclDaySpeData,
-            mdclInfoData,
-            rcptData,
-            sickData,
-            prscData,
-            mdclRsvData,
-            crmCsttDtalCntnData,
-            stomCntnData,
-            mdclDayMemoData,
-            sprtRoomDlvrDtalData] = await executeSqlQueries(queries);
-
-        return {
-            custData: custData.recordset, mdclDaySpeData: mdclDaySpeData.recordset, mdclInfoData: mdclInfoData.recordset, rcptData: rcptData.recordset, sickData: sickData.recordset
-            , prscData: prscData.recordset, mdclRsvData: mdclRsvData.recordset, crmCsttDtalCntnData: crmCsttDtalCntnData.recordset, stomCntnData: stomCntnData.recordset,
-            mdclDayMemoData: mdclDayMemoData.recordset, sprtRoomDlvrDtalData: sprtRoomDlvrDtalData.recordset
-        };
-
-    } catch (err) {
-        console.error(err);
-    } finally {
-        // 연결 종료
-        sql.close();
-    }
-}
 
 async function writecustomerData(custData) {
     const m = new Map();
@@ -335,11 +239,11 @@ async function writeSchedule(mapData, mdclInfoData) {
             const insertValues = [
                 orgId, customerId || 0, '', '', data.MDCL_DAY || '',
                 scheduleTime || '', 7, 0, 0, 0,
-                data.ENTR_DAY + "00", 0, 0, '', '',
+                '', 0, 0, '', '',
                 '', '', 0, 0, 0,
                 currentDateTimeString, 0, 0, data.CHRG_DCTR || '', 0,
                 0, 0, '', 0, 0,
-                0, data.MDCL_ROOM || '', '', customerId || '', data.MDCL_SEQNO || 0,
+                0, data.MDCL_ROOM || '', data.SPE_CNTN || '001', customerId || '', data.MDCL_SEQNO || 0,
                 0, 0, 0, 0, '',
                 '', 0, 0, 0, 0,
                 '', 0, 0, 0, '',
@@ -348,7 +252,7 @@ async function writeSchedule(mapData, mdclInfoData) {
 
             try {
                 const result = await executeMySqlQuery(insertSchedule, insertValues);
-                scheduleId[[customerId, result.SCHEDULEDATE]] = result.insertId;
+                scheduleId[[customerId, data.ENTR_DAY]] = result.insertId;
                 scheduleDate[result.insertId] = data.MDCL_DAY
             } catch (err) {
                 console.error('Customer 데이터 삽입 중 오류 발생:', err);
@@ -453,9 +357,8 @@ async function writeAssessment(mapData, mdclDaySpeData) {
 
             // 기존 스케줄 확인 map사용
             // CUST_NO -> ENTR_DAY 나오는데 해당 값과 현재 데이터의 Day가 같으면 이미존재, 업데이트 수행
-
             try {
-                if (Number(curScheduleId)) {
+                if (Number(curScheduleId) > 0) {
                     // 기존 스케줄이 있으면 update
                     // curScheduleId가 0보다크면(존재하면) update
                     await executeMySqlQuery(updateSchedule, updateValues);
@@ -1040,13 +943,15 @@ async function main() {
 
         const mdclInfoData = await fetchMdclInfoData();
 
+        // 쿼리 조인 후 SPE_CNTN을 ASSEMENT에 작성완료
+        
         const scheduleData = await writeSchedule(mapData, mdclInfoData);
 
         // MDCL_DAY_SPE_CNTN 테이블의 SPE_CNTN 컬럼의 내용을 
         // TCUSTOMERSCHEDULE의 ASSESSMENT에 converting
-        const mdclDaySpeData = await fetchMdclDaySpeData();
+        // const mdclDaySpeData = await fetchMdclDaySpeData();
 
-        await writeAssessment(scheduleData,mdclDaySpeData);
+        // await writeAssessment(scheduleData,mdclDaySpeData);
 
         // paymentCard, paymentCash 동시수행
         const rcptData = await fetchRcptData()
@@ -1082,6 +987,7 @@ async function main() {
         const sprtRoomData = await fetchSprtRoomData();
 
         await writeCustomerMemoSprtRoomDlvrDtal(scheduleData, sprtRoomData);
+
 
     } catch (error) {
         console.error(error);
