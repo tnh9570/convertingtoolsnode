@@ -1,7 +1,7 @@
 const sql = require('mssql');
 const mysql = require('mysql2/promise');
 
-const {fetchCustInfo,
+const { fetchCustInfo,
     fetchMdclDaySpeData,
     fetchMdclInfoData,
     fetchRcptData,
@@ -11,7 +11,7 @@ const {fetchCustInfo,
     fetchCrCsttDtalCntnData,
     fetchStomCntnData,
     fetchMdclDayMemoData,
-    fetchSprtRoomData} = require('./fetchdata')
+    fetchSprtRoomData } = require('./fetchdata.js')
 
 // 전역으로 사용할 orgId
 const orgId = 0;
@@ -25,8 +25,8 @@ const sqlConfig = {
         encrypt: false,
     },
     port: 1433,
-    connectionTimeout: 86400000, 
-    requestTimeout: 86400000 
+    connectionTimeout: 86400000,
+    requestTimeout: 86400000
 }
 
 const pool = mysql.createPool({
@@ -78,9 +78,32 @@ async function executeMySqlQuery(query, values) {
     }
 }
 
+// 기존의 TCUSTOMERPERSONAL에서 존재하는 모든 CUSTNO를 가져오는 코드
+async function fetchCustomerCustNo() {
+
+    const data = {};
+    const insertQuery = `
+        SELECT CUSTNO, CUSTOMERID FROM TCUSTOMERPERSONAL
+    `
+    try {
+
+        const result = await executeMySqlQuery(insertQuery);
+
+        result.forEach(row => {
+            data[row.CUSTNO] = row.CUSTOMERID;
+        })
+
+    } catch (err) {
+        console.error('Customer 데이터 삽입 중 오류 발생:', err);
+    }
+    console.log('기존 CUSTNO, CUSTOMERID 가져오기 완료')
+
+    return data
+}
 
 
-async function writecustomerData(custData) {
+async function writecustomerData(custData, custNoData) {
+    console.log("writecustomerData 시작");
     const m = new Map();
 
     // 신규회원 insert쿼리
@@ -149,20 +172,22 @@ async function writecustomerData(custData) {
         ]
 
         // 기존 회원 확인 쿼리(기존의 것을 확인해야하므로 SELECT문으로 확인)
-        const checkCustomerExistsQuery = `SELECT CUSTOMERID FROM tcustomerpersonal WHERE CUSTNO = ?`;
+        // const checkCustomerExistsQuery = `SELECT CUSTOMERID FROM tcustomerpersonal WHERE CUSTNO = ?`;
 
         try {
-            const [existingCustomer] = await executeMySqlQuery(checkCustomerExistsQuery, [data.CUST_NO]);
-            if (existingCustomer !== undefined) {
+            // const [existingCustomer] = await executeMySqlQuery(checkCustomerExistsQuery, [data.CUST_NO]);
 
+            // 키가 존재하면
+            if (data.CUST_NO in custNoData) {
                 // 기존 회원이 있으면, Map에 저장
                 // 기존회원이 존재하면 해당 데이터 update
+                console.log(`기존 회원 업데이트 실행 - CUST_NO: ${data.CUST_NO}`);
                 const result = await executeMySqlQuery(updateCustomerQuery, updateValues);
 
-
-                costomerId[data.CUST_NO] = existingCustomer.CUSTOMERID;
+                costomerId[data.CUST_NO] = custNoData[data.CUST_NO];
             } else {
                 // 존재하지 않는 경우, 새로운 회원 데이터 삽입
+                console.log(`신규 회원 추가 실행 - CUST_NO: ${data.CUST_NO}`);
                 const result = await executeMySqlQuery(insertCustomerQuery, values);
                 costomerId[data.CUST_NO] = result.insertId;
             }
@@ -172,7 +197,12 @@ async function writecustomerData(custData) {
     });
 
     // 모든 프로미스가 완료될 때까지 기다림(병렬처리)
-    await Promise.all(promises);
+    const results = await Promise.allSettled(promises);
+    results.forEach((result, index) => {
+        if (result.status === "rejected") {
+            console.log(`작업 ${index} 실패:`, result.reason);
+        }
+    });
     console.log('writecustomerData 완료')
 
     // costomerId에 CUST_NO : CUSTOMERID(PK) 설정
@@ -193,6 +223,7 @@ async function writeSchedule(mapData, mdclInfoData) {
     // 스케줄IdD : CUSTNO 데이터 저장
     const scheduleId = {};
     const scheduleDate = {};
+
 
     // 스케줄 insert쿼리
     const insertSchedule = `
@@ -251,6 +282,7 @@ async function writeSchedule(mapData, mdclInfoData) {
             ];
 
             try {
+                console.log(`스케줄 추가 - CUST_NO: ${data.CUST_NO}`);
                 const result = await executeMySqlQuery(insertSchedule, insertValues);
                 scheduleId[[customerId, data.ENTR_DAY]] = result.insertId;
                 scheduleDate[result.insertId] = data.MDCL_DAY
@@ -272,114 +304,114 @@ async function writeSchedule(mapData, mdclInfoData) {
     return mapData
 }
 
-async function writeAssessment(mapData, mdclDaySpeData) {
-    // 고려사항
-    // 이미 스케줄이 존재하면 update
-    // 존재하는 스케줄이 아니면 insert
-    // data.CUST_NO로 customerId를 찾는다
-    // customerId와 현재 날짜data.ENTR_DAY에 해당하는 scheduleId가 존재하면(0보다크면) UPDATE
-    // 존재하지않으면 INSERT
+// async function writeAssessment(mapData, mdclDaySpeData) {
+//     // 고려사항
+//     // 이미 스케줄이 존재하면 update
+//     // 존재하는 스케줄이 아니면 insert
+//     // data.CUST_NO로 customerId를 찾는다
+//     // customerId와 현재 날짜data.ENTR_DAY에 해당하는 scheduleId가 존재하면(0보다크면) UPDATE
+//     // 존재하지않으면 INSERT
 
 
-    // CUST_NO : CUSTOMEID인 객체 가져온다
-    const getCustomerId = mapData.get('costomerId');
-    const getScheduleId = mapData.get('scheduleId');
+//     // CUST_NO : CUSTOMEID인 객체 가져온다
+//     const getCustomerId = mapData.get('costomerId');
+//     const getScheduleId = mapData.get('scheduleId');
 
-    const currentDateTimeString = getCurrentDateTimeString();
+//     const currentDateTimeString = getCurrentDateTimeString();
 
-    // schedule update쿼리
-    const updateSchedule = `
-    UPDATE tcustomerschedule SET
-        ASSESSMENT = ?
-    WHERE CUSTOMERID = ? AND SCHEDULEDATE = ?
-    `
+//     // schedule update쿼리
+//     const updateSchedule = `
+//     UPDATE tcustomerschedule SET
+//         ASSESSMENT = ?
+//     WHERE CUSTOMERID = ? AND SCHEDULEDATE = ?
+//     `
 
-    // insert할 데이터를 불러와야한다
+//     // insert할 데이터를 불러와야한다
 
-    // 스케줄 insert쿼리
-    const insertScheduleAssenment = `
-    INSERT INTO tcustomerschedule (
-        ORGID, CUSTOMERID, RESVTIME, RESVDATE, SCHEDULEDATE, 
-        SCHEDULETIME, SCHEDULESTATUS, SCHDOCTOR, SCHNURSE,PHYSICALEMPL, 
-        CONSULTTIME, SVCAREA, VISITTYPE, CONSULTNOTE, PROGRESSNOTE, 
-        RESVMEMO, NURSEMEMO, BOOKMARK, INSTYPE,DISCD, 
-        CRTIME, CONDITION1, CONDITION2, RESVCOUNT, RESVCFM, 
-        RESVTMO, RESVTDY, HISTMEMO, EXTRACOST,RESVEMPLID, 
-        EXRECALL, TRPLAN, ASSESSMENT, PAYMENTTYPE, MEDCOST, 
-        PREGNANT, MIG, NOCON, NOCALC,MODHIST, 
-        SUMMARY, TREATMENTROOM, SVCAREA2, REGTYPE, SCHTYPE,
-        COLOR, ROOMNO, DURATION, SELFCHCKSTATUS, HOMENURSE,
-        ACUPUNCTURE
-    ) VALUES (
-        ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?, 
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?
-    )
-    `;
+//     // 스케줄 insert쿼리
+//     const insertScheduleAssenment = `
+//     INSERT INTO tcustomerschedule (
+//         ORGID, CUSTOMERID, RESVTIME, RESVDATE, SCHEDULEDATE, 
+//         SCHEDULETIME, SCHEDULESTATUS, SCHDOCTOR, SCHNURSE,PHYSICALEMPL, 
+//         CONSULTTIME, SVCAREA, VISITTYPE, CONSULTNOTE, PROGRESSNOTE, 
+//         RESVMEMO, NURSEMEMO, BOOKMARK, INSTYPE,DISCD, 
+//         CRTIME, CONDITION1, CONDITION2, RESVCOUNT, RESVCFM, 
+//         RESVTMO, RESVTDY, HISTMEMO, EXTRACOST,RESVEMPLID, 
+//         EXRECALL, TRPLAN, ASSESSMENT, PAYMENTTYPE, MEDCOST, 
+//         PREGNANT, MIG, NOCON, NOCALC,MODHIST, 
+//         SUMMARY, TREATMENTROOM, SVCAREA2, REGTYPE, SCHTYPE,
+//         COLOR, ROOMNO, DURATION, SELFCHCKSTATUS, HOMENURSE,
+//         ACUPUNCTURE
+//     ) VALUES (
+//         ?, ?, ?, ?, ?, 
+//         ?, ?, ?, ?, ?, 
+//         ?, ?, ?, ?, ?, 
+//         ?, ?, ?, ?, ?, 
+//         ?, ?, ?, ?, ?, 
+//         ?, ?, ?, ?, ?, 
+//         ?, ?, ?, ?, ?, 
+//         ?, ?, ?, ?, ?, 
+//         ?, ?, ?, ?, ?,
+//         ?, ?, ?, ?, ?,
+//         ?
+//     )
+//     `;
 
-    const promises = mdclDaySpeData.map(async data => {
-        // data.CUST_NO이 없으면 하위코드 실행x
-        if (data.CUST_NO) {
-            // 현재 CUST_NO에 대한 CUSTOMERID
-            const customerId = getCustomerId[data.CUST_NO];
+//     const promises = mdclDaySpeData.map(async data => {
+//         // data.CUST_NO이 없으면 하위코드 실행x
+//         if (data.CUST_NO) {
+//             // 현재 CUST_NO에 대한 CUSTOMERID
+//             const customerId = getCustomerId[data.CUST_NO];
 
-            const curScheduleId = getScheduleId[`${customerId},${data.ENTR_DAY}`] || 0;
+//             const curScheduleId = getScheduleId[`${customerId},${data.ENTR_DAY}`] || 0;
 
-            // updateValue
-            const updateValues = [
-                data.SPE_CNTN, customerId, data.ENTR_DAY
-            ]
-            // 데이터 변환 및 준비 로직
-            const scheduleTime = data.MDCL_TIME + '00';
+//             // updateValue
+//             const updateValues = [
+//                 data.SPE_CNTN, customerId, data.ENTR_DAY
+//             ]
+//             // 데이터 변환 및 준비 로직
+//             const scheduleTime = data.MDCL_TIME + '00';
 
-            // insertValue
-            const insertValues = [
-                orgId, customerId || 0, '', '', data.MDCL_DAY || '',
-                scheduleTime || '', 7, 0, 0, 0,
-                '' , 0, 0, '', '',
-                '', '', 0, 0, 0,
-                currentDateTimeString, 0, 0, data.CHRG_DCTR || '', 0,
-                0, 0, '', 0, 0,
-                0, data.MDCL_ROOM || '', data.SPE_CNTN || '', customerId || '', 0,
-                0, 0, 0, 0, '',
-                '', 0, 0, 0, 0,
-                '', 0, 0, 0, '',
-                ''
-            ];
+//             // insertValue
+//             const insertValues = [
+//                 orgId, customerId || 0, '', '', data.MDCL_DAY || '',
+//                 scheduleTime || '', 7, 0, 0, 0,
+//                 '' , 0, 0, '', '',
+//                 '', '', 0, 0, 0,
+//                 currentDateTimeString, 0, 0, data.CHRG_DCTR || '', 0,
+//                 0, 0, '', 0, 0,
+//                 0, data.MDCL_ROOM || '', data.SPE_CNTN || '', customerId || '', 0,
+//                 0, 0, 0, 0, '',
+//                 '', 0, 0, 0, 0,
+//                 '', 0, 0, 0, '',
+//                 ''
+//             ];
 
-            // 기존 스케줄 확인 map사용
-            // CUST_NO -> ENTR_DAY 나오는데 해당 값과 현재 데이터의 Day가 같으면 이미존재, 업데이트 수행
-            try {
-                if (Number(curScheduleId) > 0) {
-                    // 기존 스케줄이 있으면 update
-                    // curScheduleId가 0보다크면(존재하면) update
-                    await executeMySqlQuery(updateSchedule, updateValues);
-                }else{
-                    // 기존 스케줄이 없으면 insert
-                    await executeMySqlQuery(insertScheduleAssenment, insertValues);
-                }
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
-        }
+//             // 기존 스케줄 확인 map사용
+//             // CUST_NO -> ENTR_DAY 나오는데 해당 값과 현재 데이터의 Day가 같으면 이미존재, 업데이트 수행
+//             try {
+//                 if (Number(curScheduleId) > 0) {
+//                     // 기존 스케줄이 있으면 update
+//                     // curScheduleId가 0보다크면(존재하면) update
+//                     await executeMySqlQuery(updateSchedule, updateValues);
+//                 }else{
+//                     // 기존 스케줄이 없으면 insert
+//                     await executeMySqlQuery(insertScheduleAssenment, insertValues);
+//                 }
+//             } catch (err) {
+//                 console.error('Customer 데이터 삽입 중 오류 발생:', err);
+//             }
+//         }
 
-    });
+//     });
 
-    // 모든 프로미스가 완료될 때까지 기다림
-    await Promise.all(promises);
+//     // 모든 프로미스가 완료될 때까지 기다림
+//     await Promise.all(promises);
 
-    console.log('writeAssessment 완료');
+//     console.log('writeAssessment 완료');
 
-    return mapData
-}
+//     return mapData
+// }
 
 async function writePaymentCardCash(mapData, inputData) {
     // CUST_NO : CUSTOMERID
@@ -666,7 +698,7 @@ async function writeCustomerMemoMdclRsv(mapData, inputData) {
             const insertValues = [
                 orgId, customerId || 0, '', '', data.RSV_DAY || '',
                 data.RSV_TIME + "00" || '', 0, data.MDCL_ROOM || 0, 0, 0,
-                data.RSV_DAY +  "00" || '', 0, 0, CONSULTNOTE || '', '',
+                data.RSV_DAY + "00" || '', 0, 0, CONSULTNOTE || '', '',
                 '', '', 0, 0, 0,
                 currentDateTimeString || '', 0, 0, data.CHRG_DCTR || '', 0,
                 0, 0, '', 0, 0,
@@ -929,6 +961,7 @@ async function writeCustomerMemoSprtRoomDlvrDtal(mapData, inputData) {
 async function main() {
 
     try {
+        const custNoData = await fetchCustomerCustNo();
         // const customerData = await getfetchCustomer() // 데이터 가져오기
 
         // mapData => costomerId
@@ -936,7 +969,8 @@ async function main() {
         // 기존에 존재하는 회원은 데이터 업데이트, map에 해당 CUSTOMEID 넣어준다
         const custData = await fetchCustInfo();
 
-        const mapData = await writecustomerData(custData);
+        const mapData = await writecustomerData(custData, custNoData);
+        console.log('ww')
 
         // scheduleData까지의 map return
         // 모든 schedule insert, update완료
@@ -944,7 +978,7 @@ async function main() {
         const mdclInfoData = await fetchMdclInfoData();
 
         // 쿼리 조인 후 SPE_CNTN을 ASSEMENT에 작성완료
-        
+
         const scheduleData = await writeSchedule(mapData, mdclInfoData);
 
         // MDCL_DAY_SPE_CNTN 테이블의 SPE_CNTN 컬럼의 내용을 
@@ -992,7 +1026,7 @@ async function main() {
     } catch (error) {
         console.error(error);
     } finally {
-        console.log('종료'); 
+        console.log('종료');
     }
 }
 
