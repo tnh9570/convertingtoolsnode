@@ -10,7 +10,7 @@ const { fetchCustInfo,
     fetchCrCsttDtalCntnData,
     fetchStomCntnData,
     fetchMdclDayMemoData,
-    fetchSprtRoomData } = require('./fetchTestdata.js')
+    fetchSprtRoomData } = require('./fetchdata.js')
 
 // 전역으로 사용할 orgId
 const orgId = 37358774;
@@ -333,7 +333,7 @@ async function writePaymentCardCash(mapData, inputData) {
             const currentDateTimeString = getCurrentDateTimeString();
 
             const insertValues = [
-                orgId, customerId || '', curScheduleId || 0, Number(data.CARD_RCPT_AMT) || 0, 0,
+                orgId, customerId || 0, curScheduleId || 0, Number(data.CARD_RCPT_AMT) || 0, 0,
                 "C00", 0, 0, 0, '',
                 '', 0, data.ENTR_DAY.toString().replace(/-/g, "").substring(0, 8) || '', curScheduleDate || '', '',
                 0, 0, currentDateTimeString || '', '', 0,
