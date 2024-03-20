@@ -10,7 +10,7 @@ const { fetchCustInfo,
     fetchCrCsttDtalCntnData,
     fetchStomCntnData,
     fetchMdclDayMemoData,
-    fetchSprtRoomData } = require('./fetchdata.js')
+    fetchSprtRoomData } = require('./fetchTestdata.js')
 
 // 전역으로 사용할 orgId
 const orgId = 37358774;
@@ -129,14 +129,15 @@ async function writecustomerData(custData, custNoData) {
     const costomerId = {}
 
     const promises = custData.map(async data => {
-        // 데이터 변환 및 준비 로직
+        if (data.CUST_NO) {
+            // 데이터 변환 및 준비 로직
         const ctznnoPrefix = Number(data.CTZN_NO.slice(0, 2)) > 24 ? '19' : '20';
         const ctznno = ctznnoPrefix + data.CTZN_NO.slice(0, 6);
         const gender = data.SEX === 'F' ? 2 : 1;
         const currentDateTimeString = getCurrentDateTimeString();
 
         const values = [
-            data.NAME || '', data.CUST_NO || '', data.CTZN_NO || '', ctznno, 0, gender, data.ENTR_DAY, data.MDFY_DAY, data.ADDR1 + data.ADDR2, currentDateTimeString,
+            data.NAME || '', data.CUST_NO || '', data.CTZN_NO || '', ctznno || '', 0, gender || 0, data.ENTR_DAY || '', data.MDFY_DAY || '', data.ADDR1 + data.ADDR2 || '', currentDateTimeString || '',
             orgId, '', '', '', '', '', '', '',
             '', '', '', '', '', '', '', '',
             '', '', '', '', '', '', '', '',
@@ -145,8 +146,8 @@ async function writecustomerData(custData, custNoData) {
         ]
 
         const updateValues = [
-            data.NAME || '', data.CTZN_NO || '', ctznno, 0, gender,
-            data.ENTR_DAY, data.MDFY_DAY, data.ADDR1 + data.ADDR2, currentDateTimeString, orgId,
+            data.NAME || '', data.CTZN_NO || '', ctznno || '', 0, gender || 0,
+            data.ENTR_DAY || '', data.MDFY_DAY || '', data.ADDR1 + data.ADDR2 || '', currentDateTimeString || '', orgId,
             '', '', '', '', '',
             '', '', '', '', '',
             '', '', '', '', '',
@@ -179,6 +180,7 @@ async function writecustomerData(custData, custNoData) {
             }
         } catch (err) {
             console.error('Customer 데이터 삽입 중 오류 발생:', err);
+        }
         }
     });
 
