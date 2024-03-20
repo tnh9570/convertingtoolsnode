@@ -17,7 +17,7 @@ async function fetchCustInfo() {
     try {
         await sql.connect(sqlConfig);
         const result = await sql.query(`
-        SELECT 
+        SELECT TOP 200
             NAME, 
             CTZN_NO, 
             SEX, 

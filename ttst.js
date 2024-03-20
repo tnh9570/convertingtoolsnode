@@ -125,14 +125,16 @@ async function writecustomerData(custData, custNoData) {
                    CUSTTYPE, CUSTLVL, CUSTJOB, CUSTPIC, CUSTLSTDATE, CUSTZIPCODE1, CUSTADDR12, CUSTZIPCODE2,
                    CUSTADDR21, CUSTADDR22, CUSTZIPCODE3, CUSTADDR31, CUSTADDR32, CUSTNICKNAME, CUSTINTRE, CUSTINFX, 
                    SURNAME, CUSTMEMO, PERSONALINFO, INTROMEMO, STATE1, TITLE, ETHNICITY, ANNIVERSARY,
-                   INSTYPE, TXAGREE, POLICYAGREE, ARBTAGREE, RECVSMSDATE 
+                   INSTYPE, TXAGREE, POLICYAGREE, ARBTAGREE, RECVSMSDATE,
+                   RECVAD, RECVSMS
                  ) VALUES (
                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
                    ?, ?, ?, ?, ?, ?, ?, ?,
                    ?, ?, ?, ?, ?, ?, ?, ?, 
                    ?, ?, ?, ?, ?, ?, ?, ?, 
                    ?, ?, ?, ?, ?, ?, ?, ?,
-                   ?, ?, ?, ?, ?)
+                   ?, ?, ?, ?, ?,
+                   ?, ?)
     `;
 
     // 기존회원 update쿼리
@@ -147,7 +149,7 @@ async function writecustomerData(custData, custNoData) {
         CUSTNICKNAME = ?, CUSTINTRE = ?, CUSTINFX = ?,SURNAME = ?, CUSTMEMO = ?, 
         PERSONALINFO = ?, INTROMEMO = ?, STATE1 = ?, TITLE = ?, ETHNICITY = ?, 
         ANNIVERSARY = ?,INSTYPE = ?, TXAGREE = ?, POLICYAGREE = ?, ARBTAGREE = ?, 
-        RECVSMSDATE = ?
+        RECVSMSDATE = ?, RECVAD = ?, RECVSMS = ?
     WHERE CUSTNO = ?`;
 
     // 모든회원의 CUSTNO : CUSTOMERID를 넣어줄 객체
@@ -160,6 +162,10 @@ async function writecustomerData(custData, custNoData) {
         const ctznno = ctznnoPrefix + data.CTZN_NO.slice(0, 6);
         const gender = data.SEX === 'F' ? 2 : 1;
         const currentDateTimeString = getCurrentDateTimeString();
+        // 광고수신동의 Y, N형식으로
+        // Y 이면 1로 N이면 0으로 변경
+        const smsCheck = data.SMS_FLAG === 'Y' ? 1 : 0;
+
 
         const values = [
             data.NAME || '', data.CUST_NO || '', data.CTZN_NO || '', ctznno || '', 0, gender || 0, data.ENTR_DAY || '', data.MDFY_DAY || '', data.ADDR1 + data.ADDR2 || '', currentDateTimeString || '',
@@ -167,7 +173,8 @@ async function writecustomerData(custData, custNoData) {
             '', '', '', '', '', '', '', '',
             '', '', '', '', '', '', '', '',
             '', '', 0, '', '', '', '', '',
-            '', 0, 0, 0, ''
+            '', 0, 0, 0, data.MDFY_DAY || '',
+            smsCheck || 0, smsCheck || 0
         ]
 
         const updateValues = [
@@ -180,7 +187,7 @@ async function writecustomerData(custData, custNoData) {
             '', '', '', '', '',
             0, '', '', '', '',
             '', '', 0, 0, 0,
-            '', data.CUST_NO
+            data.MDFY_DAY || '', smsCheck || 0, smsCheck || 0, data.CUST_NO
         ]
 
         // 기존 회원 확인 쿼리(기존의 것을 확인해야하므로 SELECT문으로 확인)
@@ -251,7 +258,7 @@ async function writeSchedule(mapData, mdclInfoData) {
         PREGNANT, MIG, NOCON, NOCALC,MODHIST, 
         SUMMARY, TREATMENTROOM, SVCAREA2, REGTYPE, SCHTYPE,
         COLOR, ROOMNO, DURATION, SELFCHCKSTATUS, HOMENURSE,
-        ACUPUNCTURE
+        ACUPUNCTURE 
     ) VALUES (
         ?, ?, ?, ?, ?, 
         ?, ?, ?, ?, ?, 
