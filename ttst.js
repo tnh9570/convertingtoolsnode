@@ -87,6 +87,31 @@ async function fetchCustomerCustNo() {
     return data
 }
 
+// 기존의 TCUSTOMERPERSONAL에서 존재하는 모든 CUSTNO : CUSTOMERID를 가져오는 코드
+async function fetchCustomerPersonal() {
+    const m = new Map();
+
+    const data = {};
+    const insertQuery = `
+        SELECT CUSTNO, CUSTOMERID FROM TCUSTOMERPERSONAL
+    `
+    try {
+
+        const result = await executeMySqlQuery(insertQuery);
+
+        result.forEach(row => {
+            data[row.CUSTNO] = row.CUSTOMERID;
+        })
+
+    } catch (err) {
+        console.error('Customer 데이터 삽입 중 오류 발생:', err);
+    }
+    console.log('기존 CUSTNO, CUSTOMERID 가져와서  map저장완료')
+    m.set('costomerId', data)
+
+    return m
+}
+
 
 async function writecustomerData(custData, custNoData) {
     console.log("writecustomerData 시작");
@@ -842,7 +867,6 @@ async function main() {
 
     try {
         const custNoData = await fetchCustomerCustNo();
-        // const customerData = await getfetchCustomer() // 데이터 가져오기
 
         // mapData => costomerId
         // 모든 회원의 CUSTOMERID : CUSTNO
@@ -850,10 +874,12 @@ async function main() {
         const custData = await fetchCustInfo();
 
         const mapData = await writecustomerData(custData, custNoData);
-        console.log('ww')
 
         // scheduleData까지의 map return
         // 모든 schedule insert, update완료
+
+        // CUSTOMERPERSONAL 실행하지않고 스케줄부터시작코드
+        // const mapData = await fetchCustomerPersonal();
 
         const mdclInfoData = await fetchMdclInfoData();
 

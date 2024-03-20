@@ -3,7 +3,7 @@ const sqlConfig = {
     user: 'sa',
     password: '@1023ldde1023',
     server: 'DESKTOP-VI1EG1F',
-    database: 'Almighty',
+    database: 'Almighty1',
     options: {
         encrypt: false,
     },
