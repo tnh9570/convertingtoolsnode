@@ -838,6 +838,7 @@ async function writeCustomerMemoSprtRoomDlvrDtal(mapData, inputData) {
 
 
 async function main() {
+    const startTime = new Date(); // 시작 시간 기록
 
     try {
         const custNoData = await fetchCustomerCustNo();
@@ -899,7 +900,11 @@ async function main() {
     } catch (error) {
         console.error(error);
     } finally {
-        console.log('종료');
+        const endTime = new Date(); // 종료 시간 기록
+        const timeDiff = endTime - startTime; // 밀리초 단위로 걸린 시간 계산
+        const seconds = timeDiff / 1000; // 밀리초를 초 단위로 변환
+
+        console.log(`종료. 총 걸린 시간: ${seconds}초`);
     }
 }
 
