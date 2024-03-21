@@ -29,10 +29,37 @@ async function fetchCustInfo() {
             CUST_NO, 
             ENTR_DAY, 
             MDFY_DAY,
-            SMS_FLAG, 
+            SMS_FLAG,
+            SEND_FLAG, 
             ADDR1, 
             ADDR2 
         FROM CUST_INFO`);
+        return result.recordset;
+    } catch (err) {
+        console.error('CUST_INFO 데이터 가져오기 실패:', err);
+        throw err;
+    } finally {
+        await sql.close();
+    }
+}
+
+async function fetchTestCustInfo() {
+    try {
+        await sql.connect(sqlConfig);
+        const result = await sql.query(`
+        SELECT 
+    NAME, 
+    CTZN_NO, 
+    SEX, 
+    CUST_NO, 
+    ENTR_DAY, 
+    MDFY_DAY,
+    SMS_FLAG,
+    SEND_FLAG, 
+    ADDR1, 
+    ADDR2 
+FROM CUST_INFO
+WHERE CUST_NO > 29000`);
         return result.recordset;
     } catch (err) {
         console.error('CUST_INFO 데이터 가져오기 실패:', err);
