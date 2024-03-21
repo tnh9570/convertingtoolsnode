@@ -680,7 +680,8 @@ async function updateDisease(custData, scheduleData, inputData) {
         ?, ?, ?, ?, ?
       )`;
 
-    const promises = inputData.map(async data => {
+    const promises = [];
+    inputData.forEach((data, index) => {
         if (data.CUST_NO) {
 
             const customerId = custData[data.CUST_NO];
@@ -718,18 +719,10 @@ async function updateDisease(custData, scheduleData, inputData) {
                 custno, diseasenameEn, 0, '', data.SORT_NO
             ]
 
-            try {
-                // insert 수행 후 payment pk저장
-                // SCHEDULEID: paymentId 
-                console.log(`updateDisease 시작 ${data.CUST_NO}`)
-                result = await executeMySqlQuery(insertDiseaseQuery, insertValues);
-                console.log(`updateDisease 완료 ${data.CUST_NO}`)
-
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
+            promises.push(executeMySqlQuery(insertDiseaseQuery, insertValues));
 
         }
+        inputData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
@@ -1373,7 +1366,7 @@ async function main() {
 
         let mapData = await writecustomerData(custData, custNoData);
         custData = null;
-        // custNoData = null;
+        custNoData = null;
 
         // scheduleData까지의 map return
         // 모든 schedule insert, update완료
