@@ -268,44 +268,27 @@ async function updatecustomerData(custData) {
     RECVSMSDATE = ?,  RECVAD = ?, RECVSMS = ?
     WHERE CUSTNO = ?`;
 
-    const promises = custData.map(async data => {
+    const promises = custData.map((data) => {
         if (data.CUST_NO) {
-            // 데이터 변환 및 준비 로직
-            const ctznnoPrefix = Number(data.CTZN_NO.slice(0, 2)) > 24 ? '19' : '20';
-            const ctznno = ctznnoPrefix + data.CTZN_NO.slice(0, 6);
-            const gender = data.SEX === 'F' ? 2 : 1;
-            const currentDateTimeString = getCurrentDateTimeString();
             // 광고수신동의 Y, N형식으로
             // Y 이면 1로 N이면 0으로 변경
             const smsCheck = data.SEND_FLAG === 'Y' ? 1 : 0;
-
+    
             const updateValues = [
-                data.ENTR_DAY || '', smsCheck || 0, smsCheck || 0, data.CUST_NO
-            ]
-
-            // 기존 회원 확인 쿼리(기존의 것을 확인해야하므로 SELECT문으로 확인)
-            // const checkCustomerExistsQuery = `SELECT CUSTOMERID FROM tcustomerpersonal WHERE CUSTNO = ?`;
-
-            try {
-                // const [existingCustomer] = await executeMySqlQuery(checkCustomerExistsQuery, [data.CUST_NO]);
-
-                // 키가 존재하면
-                // 기존 회원이 있으면, Map에 저장
-                // 기존회원이 존재하면 해당 데이터 update
-                const result = await executeMySqlQuery(updateCustomerQuery, updateValues);
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
+                data.ENTR_DAY || '',
+                smsCheck || 0,
+                smsCheck || 0,
+                data.CUST_NO
+            ];
+    
+            return executeMySqlQuery(updateCustomerQuery, updateValues);
+        } else {
+            return new Promise((resolve) => resolve());
         }
     });
 
     // 모든 프로미스가 완료될 때까지 기다림(병렬처리)
-    const results = await Promise.allSettled(promises);
-    results.forEach((result, index) => {
-        if (result.status === "rejected") {
-            console.log(`작업 ${index} 실패:`, result.reason);
-        }
-    });
+    await Promise.allSettled(promises);
     console.log('writecustomerData 완료')
 
     // costomerId에 CUST_NO : CUSTOMERID(PK) 설정
