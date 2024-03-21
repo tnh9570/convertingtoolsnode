@@ -16,8 +16,6 @@ const sqlConfig = {
 
 // 필요한 컬럼만 가져오는 작업(사용컬럼만으로 수정)
 
-
-
 async function fetchCustInfo() {
     try {
         await sql.connect(sqlConfig);
@@ -34,32 +32,6 @@ async function fetchCustInfo() {
             ADDR1, 
             ADDR2 
         FROM CUST_INFO`);
-        return result.recordset;
-    } catch (err) {
-        console.error('CUST_INFO 데이터 가져오기 실패:', err);
-        throw err;
-    } finally {
-        await sql.close();
-    }
-}
-
-async function fetchTestCustInfo() {
-    try {
-        await sql.connect(sqlConfig);
-        const result = await sql.query(`
-        SELECT 
-    NAME, 
-    CTZN_NO, 
-    SEX, 
-    CUST_NO, 
-    ENTR_DAY, 
-    MDFY_DAY,
-    SMS_FLAG,
-    SEND_FLAG, 
-    ADDR1, 
-    ADDR2 
-FROM CUST_INFO
-WHERE CUST_NO > 29000`);
         return result.recordset;
     } catch (err) {
         console.error('CUST_INFO 데이터 가져오기 실패:', err);
@@ -96,9 +68,10 @@ async function fetchMdclInfoData() {
             MI.CHRG_DCTR, 
             MI.MDCL_ROOM, 
             MDS.SPE_CNTN,
-            MI.MDCL_SEQNO
+            MI.MDCL_SEQNO,
+            MDS.ENTR_DAY
         FROM MDCL_INFO MI
-        INNER JOIN MDCL_DAY_SPE_CNTN MDS ON MI.CUST_NO = MDS.CUST_NO AND MI.ENTR_DAY = MDS.ENTR_DAY
+        LEFT JOIN MDCL_DAY_SPE_CNTN MDS ON MI.CUST_NO = MDS.CUST_NO AND MI.ENTR_DAY = MDS.ENTR_DAY
     `);
         return result.recordset;
     } catch (err) {

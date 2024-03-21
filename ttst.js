@@ -19,9 +19,9 @@ const pool = mysql.createPool({
     host: '127.0.0.1',
     user: 'root',
     password: '0000',
-    database: 'h01291',
+    database: 'h00033',
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 100,
     queueLimit: 0
 });
 
@@ -146,10 +146,11 @@ async function fetchCustomerPersonal() {
 }
 
 
-async function writecustomerData(custData, custNoData) {
+async function writecustomerData(custNoData, inputdata) {
     console.log("writecustomerData 시작");
     const m = new Map();
 
+    const promises = [];
     // 신규회원 insert쿼리
     const insertCustomerQuery = `
     INSERT INTO tcustomerpersonal (
@@ -185,8 +186,9 @@ async function writecustomerData(custData, custNoData) {
         RECVSMSDATE = ?, RECVAD = ?, RECVSMS = ?
     WHERE CUSTNO = ?`;
 
-    const promises = [];
-    custData.forEach((data, index) => {
+    
+
+    inputdata.forEach((data, index) => {
         if (data.CUST_NO) {
             // 데이터 변환 및 준비 로직
             const ctznnoPrefix = Number(data.CTZN_NO.slice(0, 2)) > 24 ? '19' : '20';
@@ -196,7 +198,6 @@ async function writecustomerData(custData, custNoData) {
             // 광고수신동의 Y, N형식으로
             // Y 이면 1로 N이면 0으로 변경
             const smsCheck = data.SEND_FLAG === 'Y' ? 1 : 0;
-
 
             const values = [
                 data.NAME || '', data.CUST_NO || '', data.CTZN_NO || '', ctznno || '', 0, gender || 0, data.ENTR_DAY || '', data.MDFY_DAY || '', data.ADDR1 + data.ADDR2 || '', currentDateTimeString || '',
@@ -220,12 +221,6 @@ async function writecustomerData(custData, custNoData) {
                 '', '', 0, 0, 0,
                 data.MDFY_DAY || '', smsCheck || 0, smsCheck || 0, data.CUST_NO
             ]
-
-            // 기존 회원 확인 쿼리(기존의 것을 확인해야하므로 SELECT문으로 확인)
-            // const checkCustomerExistsQuery = `SELECT CUSTOMERID FROM tcustomerpersonal WHERE CUSTNO = ?`;
-
-            // const [existingCustomer] = await executeMySqlQuery(checkCustomerExistsQuery, [data.CUST_NO]);
-
             // 키가 존재하면
             if (data.CUST_NO in custNoData) {
                 // 기존 회원이 있으면, Map에 저장
@@ -233,18 +228,17 @@ async function writecustomerData(custData, custNoData) {
                 promises.push(executeMySqlQuery(updateCustomerQuery, updateValues));
             } else {
                 // 존재하지 않는 경우, 새로운 회원 데이터 삽입
-                promises.push(
-                    executeMySqlQuery(insertCustomerQuery, values).then((result) => {
+                promises.push(executeMySqlQuery(insertCustomerQuery, values).then((result) => { 
                     custNoData[data.CUST_NO] = result.insertId;
-                    })
-                );
+                }))
+
             }
         }
-        custData[index] = null;
+        inputdata[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림(병렬처리)
-    await Promise.allSettled(promises);
+    await Promise.all(promises);
     console.log('writecustomerData 완료')
 
     // costomerId에 CUST_NO : CUSTOMERID(PK) 설정
@@ -269,14 +263,14 @@ async function updatecustomerData(custData) {
             // 광고수신동의 Y, N형식으로
             // Y 이면 1로 N이면 0으로 변경
             const smsCheck = data.SEND_FLAG === 'Y' ? 1 : 0;
-    
+
             const updateValues = [
                 data.ENTR_DAY || '',
                 smsCheck || 0,
                 smsCheck || 0,
                 data.CUST_NO
             ];
-    
+
             return executeMySqlQuery(updateCustomerQuery, updateValues);
         } else {
             return new Promise((resolve) => resolve());
@@ -285,7 +279,7 @@ async function updatecustomerData(custData) {
 
     // 모든 프로미스가 완료될 때까지 기다림(병렬처리)
     await Promise.allSettled(promises);
-    console.log('writecustomerData 완료')
+   
 
     // costomerId에 CUST_NO : CUSTOMERID(PK) 설정
     m.set('costomerId', costomerId)
@@ -294,10 +288,6 @@ async function updatecustomerData(custData) {
 }
 
 async function writeSchedule(mapData, mdclInfoData) {
-    // 고려사항
-    // SCHEDULEID 저장 객체생성
-    // key = CUSTNO, MDCL_DAY 사용자NO, 방문날짜로 확인
-
     // CUST_NO : CUSTOMEID인 객체 가져온다
     const getCustomerId = mapData.get('costomerId');
 
@@ -305,7 +295,6 @@ async function writeSchedule(mapData, mdclInfoData) {
     // 스케줄IdD : CUSTNO 데이터 저장
     const scheduleId = {};
     const scheduleDate = {};
-
 
     // 스케줄 insert쿼리
     const insertSchedule = `
@@ -337,6 +326,8 @@ async function writeSchedule(mapData, mdclInfoData) {
     `;
     let isMig;
 
+    const promises = [];
+
     // 현재 날짜가 컨버팅 날짜 이후인지 판별
     // 현재 날짜가 컨버팅 날짜 이후이면 true아니면 false
     if (isAfter20240321()) {
@@ -346,7 +337,7 @@ async function writeSchedule(mapData, mdclInfoData) {
     }
     const currentDateTimeString = getCurrentDateTimeString();
 
-    const promises = mdclInfoData.map(async data => {
+    mdclInfoData.forEach((data, index) => {
         // data.CUST_NO이 없으면 하위코드 실행x
         if (data.CUST_NO) {
             // 현재 CUST_NO에 대한 CUSTOMERID
@@ -363,21 +354,22 @@ async function writeSchedule(mapData, mdclInfoData) {
                 '', '', 0, 0, 0,
                 currentDateTimeString, 0, 0, data.CHRG_DCTR || '', 0,
                 0, 0, '', 0, 0,
-                0, data.MDCL_ROOM || '', data.SPE_CNTN || '001', customerId || '', data.MDCL_SEQNO || 0,
+                0, data.MDCL_ROOM || '', data.SPE_CNTN || '001', customerId || '', Number(data.MDCL_SEQNO) || 0,
                 0, isMig, 0, 0, '',
                 '', 0, 0, 0, 0,
                 '', 0, 0, 0, '',
                 ''
             ];
-
-            try {
-                const result = await executeMySqlQuery(insertSchedule, insertValues);
+            // executeMySqlQuery를 호출하고, then 메서드를 사용하여 결과를 처리
+            promises.push(executeMySqlQuery(insertSchedule, insertValues).then((result) => {
                 scheduleId[`${customerId},${data.ENTR_DAY}`] = result.insertId;
-                scheduleDate[result.insertId] = data.MDCL_DAY
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
+                scheduleDate[result.insertId] = data.MDCL_DAY;
+            }).catch((error) => {
+                console.error("Error executing query:", error);
+            }));
+
         }
+    mdclInfoData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
@@ -388,6 +380,8 @@ async function writeSchedule(mapData, mdclInfoData) {
     // costomerId에 CUST_NO : CUSTOMERID(PK) 설정
     mapData.set('scheduleId', scheduleId);
     mapData.set('scheduleDate', scheduleDate);
+
+    console.log(mapData.get('scheduleId'));
 
     return mapData
 }
@@ -502,8 +496,6 @@ async function writePaymentCardCash(mapData, inputData) {
     // key: 스케줄ID, value: 스케줄날짜
     const getScheduleDate = mapData.get('scheduleDate');
 
-    const paymentId = {}
-
     // PAYMENT insert
     const insertPaymentCardQuery = `
     INSERT INTO TPAYMENT (
@@ -520,7 +512,9 @@ async function writePaymentCardCash(mapData, inputData) {
       ?, ?, ?
     )`;
 
-    const promises = inputData.map(async data => {
+    const promises = [];
+
+    inputData.forEach((data, index) => {
         // CARD_RCPT_AMT > 0일 경우에만 로직수행
         if (data.CARD_RCPT_AMT > 0 && data.CUST_NO) {
 
@@ -540,15 +534,9 @@ async function writePaymentCardCash(mapData, inputData) {
                 0, 0, ''
             ]
 
-            try {
-                // insert 수행 후 payment pk저장
-                // SCHEDULEID: paymentId 
-                result = await executeMySqlQuery(insertPaymentCardQuery, insertValues);
-                paymentId[curScheduleId] = result.insertId;
 
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
+            promises.push(executeMySqlQuery(insertPaymentCardQuery, insertValues))
+
 
         } else if (data.CASH_RCPT_AMT > 0 && data.CUST_NO) { // CASH_RCPT_AMT > 0일경우 위의로직 수행 하는데 PAYMENTCODE를 "M00"으로 insert
             const customerId = getCostomerId[data.CUST_NO];
@@ -567,26 +555,16 @@ async function writePaymentCardCash(mapData, inputData) {
                 0, 0, ''
             ]
 
-            try {
-                // insert 수행 후 payment pk저장
-                // SCHEDULEID: paymentId 
-                result = await executeMySqlQuery(insertPaymentCardQuery, insertValues);
+            promises.push(executeMySqlQuery(insertPaymentCardQuery, insertValues));
 
-                paymentId[curScheduleId] = result.insertId;
-
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
         }
+    inputData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
     await Promise.all(promises);
 
     console.log('writePaymentCardCash 완료');
-
-    // costomerId에 CUST_NO : CUSTOMERID(PK) 설정
-    mapData.set('paymentId', paymentId)
 
     return mapData;
 }
@@ -610,7 +588,8 @@ async function writeDisease(mapData, inputData) {
         ?, ?, ?, ?, ?
       )`;
 
-    const promises = inputData.map(async data => {
+    const promises = []
+    inputData.map((data, index) => {
         if (data.CUST_NO) {
 
             const customerId = getCostomerId[data.CUST_NO];
@@ -646,15 +625,7 @@ async function writeDisease(mapData, inputData) {
                 custno, diseasenameEn, 0, '', data.SORT_NO
             ]
 
-            try {
-                // insert 수행 후 payment pk저장
-                // SCHEDULEID: paymentId 
-                result = await executeMySqlQuery(insertDiseaseQuery, insertValues);
-
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
-
+            promises.push(executeMySqlQuery(insertDiseaseQuery, insertValues));
         }
     });
 
@@ -719,7 +690,7 @@ async function updateDisease(custData, scheduleData, inputData) {
                 custno, diseasenameEn, 0, '', data.SORT_NO
             ]
 
-            promises.push(executeMySqlQuery(insertDiseaseQuery, insertValues));
+            promises.push(executeMySqlQuery(insertDiseaseQuery, insertValues).then(() => { console.log(data.CUST_NO) }));
 
         }
         inputData[index] = null;
@@ -761,8 +732,6 @@ async function updateMedicalItem(custData, scheduleData, inputData) {
             const customerId = custData[data.CUST_NO];
 
             const curScheduleId = scheduleData[`${customerId},${data.ENTR_DAY}`];
-            console.log(curScheduleId);
-
             // 데이터 변환코드
 
             const insertValues = [
@@ -812,7 +781,8 @@ async function writeMedicalItem(mapData, inputData) {
       ?, ?, ?
     )`;
 
-    const promises = inputData.map(async data => {
+    const promises = [];
+    inputData.forEach((data, index) => {
         if (data.CUST_NO) {
 
             const customerId = getCostomerId[data.CUST_NO];
@@ -829,16 +799,9 @@ async function writeMedicalItem(mapData, inputData) {
                 '', '', '', 0, '',
                 '', 0, ''
             ]
-
-
-            try {
-                await executeMySqlQuery(insertMedicalQuery, insertValues);
-
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
-
+            promises.push(executeMySqlQuery(insertMedicalQuery, insertValues));
         }
+    
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
@@ -850,69 +813,69 @@ async function writeMedicalItem(mapData, inputData) {
 }
 
 // scheduleId 업데이트
-async function updateMedicalItem(mapData, inputData) {
-    // CUST_NO : CUSTOMERID
-    const getCostomerId = mapData.get('costomerId');
+// async function updateMedicalItem(mapData, inputData) {
+//     // CUST_NO : CUSTOMERID
+//     const getCostomerId = mapData.get('costomerId');
 
-    // key: [방문스케줄ID, 방문날짜], value : 스케줄아이디
-    const getScheduleId = mapData.get('scheduleId');
+//     // key: [방문스케줄ID, 방문날짜], value : 스케줄아이디
+//     const getScheduleId = mapData.get('scheduleId');
 
-    // PAYMENT insert
-    const insertMedicalQuery = `
-    INSERT INTO TSALEITEM (
-      SCHEDULEID,ITEMNAME,ITEMCODE,UNITPRICE,TOTALPRICE,
-      CATEGORY,NODAYS,DAILYDOSE,DAILYAPP,DISCOUNT,
-      ORGID,ACUPOINT,POSTURE,DESCRIPTION,SPCODE,
-      SPDETAIL,EXCLAIM,DURID,INS100,MAXPRICE,
-      PRESCMEMO,ACODE,SFLAG,TAX,SAMPLECODE,
-      MEMO,SEQ,DOSAGE
-    ) VALUES (
-      ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?,
-      ?, ?, ?
-    )`;
+//     // PAYMENT insert
+//     const insertMedicalQuery = `
+//     INSERT INTO TSALEITEM (
+//       SCHEDULEID,ITEMNAME,ITEMCODE,UNITPRICE,TOTALPRICE,
+//       CATEGORY,NODAYS,DAILYDOSE,DAILYAPP,DISCOUNT,
+//       ORGID,ACUPOINT,POSTURE,DESCRIPTION,SPCODE,
+//       SPDETAIL,EXCLAIM,DURID,INS100,MAXPRICE,
+//       PRESCMEMO,ACODE,SFLAG,TAX,SAMPLECODE,
+//       MEMO,SEQ,DOSAGE
+//     ) VALUES (
+//       ?, ?, ?, ?, ?,
+//       ?, ?, ?, ?, ?,
+//       ?, ?, ?, ?, ?,
+//       ?, ?, ?, ?, ?,
+//       ?, ?, ?, ?, ?,
+//       ?, ?, ?
+//     )`;
 
-    const promises = inputData.map(async data => {
-        if (data.CUST_NO) {
+//     const promises = inputData.map(async data => {
+//         if (data.CUST_NO) {
 
-            const customerId = getCostomerId[data.CUST_NO];
+//             const customerId = getCostomerId[data.CUST_NO];
 
-            const curScheduleId = getScheduleId[`${customerId},${data.ENTR_DAY}`];
+//             const curScheduleId = getScheduleId[`${customerId},${data.ENTR_DAY}`];
 
-            // 데이터 변환코드
+//             // 데이터 변환코드
 
-            const insertValues = [
-                curScheduleId || 0, data.ITEMTITLE || 0, data.ITEMCODE || '', data.CLAIM_AMT || 0, 0,
-                0, data.TOT_MDCT_QTY || 0, data.MDCT_QTY || 0, data.MDCT_CNT || 0, 0,
-                orgId, '', '', '', String(data.CUST_NO).trim() || '',
-                '', 0, 0, 0, 0,
-                '', '', '', 0, '',
-                '', 0, ''
-            ]
+//             const insertValues = [
+//                 curScheduleId || 0, data.ITEMTITLE || 0, data.ITEMCODE || '', data.CLAIM_AMT || 0, 0,
+//                 0, data.TOT_MDCT_QTY || 0, data.MDCT_QTY || 0, data.MDCT_CNT || 0, 0,
+//                 orgId, '', '', '', String(data.CUST_NO).trim() || '',
+//                 '', 0, 0, 0, 0,
+//                 '', '', '', 0, '',
+//                 '', 0, ''
+//             ]
 
 
-            try {
-                console.log(`updateMedicalItem 시작 ${data.CUST_NO}`);
-                await executeMySqlQuery(insertMedicalQuery, insertValues);
-                console.log(`updateMedicalItem 완료 ${data.CUST_NO}`);
+//             try {
+//                 console.log(`updateMedicalItem 시작 ${data.CUST_NO}`);
+//                 await executeMySqlQuery(insertMedicalQuery, insertValues);
+//                 console.log(`updateMedicalItem 완료 ${data.CUST_NO}`);
 
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
+//             } catch (err) {
+//                 console.error('Customer 데이터 삽입 중 오류 발생:', err);
+//             }
 
-        }
-    });
+//         }
+//     });
 
-    // 모든 프로미스가 완료될 때까지 기다림
-    await Promise.all(promises);
+//     // 모든 프로미스가 완료될 때까지 기다림
+//     await Promise.all(promises);
 
-    console.log('writeMedicalItem 완료');
+//     console.log('writeMedicalItem 완료');
 
-    return mapData;
-}
+//     return mapData;
+// }
 
 async function writeCustomerMemoMdclRsv(mapData, inputData) {
     // CUST_NO : CUSTOMERID
@@ -958,7 +921,8 @@ async function writeCustomerMemoMdclRsv(mapData, inputData) {
         ?, ?, ?, ?, ?
     )`;
 
-    const promises = inputData.map(async data => {
+    const promises = [];
+    inputData.forEach((data, index) => {
         if (data.CUST_NO) {
 
             const customerId = getCostomerId[data.CUST_NO];
@@ -981,15 +945,9 @@ async function writeCustomerMemoMdclRsv(mapData, inputData) {
                 '', 0, 0, 0, ''
             ]
 
-
-            try {
-                await executeMySqlQuery(insertMemoMdclRsvQuery, insertValues);
-
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
-
+            promises.push(executeMySqlQuery(insertMemoMdclRsvQuery, insertValues));
         }
+    inputData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
@@ -1037,7 +995,8 @@ async function writeCustomerScheduleCrmCsttDtalCntn(mapData, inputData) {
         ?, ?, ?, ?, ?
     )`;
 
-    const promises = inputData.map(async data => {
+    const promises = [];
+    inputData.forEach((data, index) => {
         if (data.CUST_NO) {
 
             const customerId = getCostomerId[data.CUST_NO];
@@ -1059,16 +1018,10 @@ async function writeCustomerScheduleCrmCsttDtalCntn(mapData, inputData) {
                 '', 0, 0, 0, 0,
                 '', 0, 0, 0, ''
             ]
-            try {
-                console.log(`writeCustomerScheduleCrmCsttDtalCntn 추가 시작 - CUST_NO: ${data.CUST_NO}`);
-                await executeMySqlQuery(insertCrmCsttDtalCntnQuery, insertValues);
-                console.log(`writeCustomerScheduleCrmCsttDtalCntn 추가 완료 - CUST_NO: ${data.CUST_NO}`);
 
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
-
+            promises.push(executeMySqlQuery(insertCrmCsttDtalCntnQuery, insertValues));
         }
+    inputData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
@@ -1116,7 +1069,8 @@ async function writeCustomerScheduleStomCntn(mapData, inputData) {
         ?, ?, ?, ?, ?
     )`;
 
-    const promises = inputData.map(async data => {
+    const promises = [];
+    inputData.forEach((data, index) => {
         if (data.CUST_NO) {
 
             const customerId = getCostomerId[data.CUST_NO];
@@ -1138,14 +1092,10 @@ async function writeCustomerScheduleStomCntn(mapData, inputData) {
                 '', 0, 0, 0, 0,
                 '', 0, 0, 0, ''
             ]
-            try {
-                await executeMySqlQuery(insertCrmCsttDtalCntnQuery, insertValues);
-
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
+            promises.push(executeMySqlQuery(insertCrmCsttDtalCntnQuery, insertValues));
 
         }
+    inputData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
@@ -1173,7 +1123,8 @@ async function writeCustomerMemoMdclDayMemo(mapData, inputData) {
         ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?)`;
 
-    const promises = inputData.map(async data => {
+    const promises = [];
+    inputData.map((data, index) => {
         if (data.CUST_NO) {
             const customerId = getCostomerId[data.CUST_NO]
 
@@ -1187,13 +1138,9 @@ async function writeCustomerMemoMdclDayMemo(mapData, inputData) {
                 data.MDCL_DAY.trim() || '', 1, 0, 0, '',
                 0, 0, '', 0, ''
             ]
-            try {
-                await executeMySqlQuery(insertMemoMdclDayMemoQuery, insertValues);
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
-
+            promises.push(executeMySqlQuery(insertMemoMdclDayMemoQuery, insertValues));
         }
+    inputData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
@@ -1276,7 +1223,8 @@ async function writeCustomerMemoSprtRoomDlvrDtal(mapData, inputData) {
         ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?)`;
 
-    const promises = inputData.map(async data => {
+    promises = [];
+    inputData.forEach((data, index) => {
         if (data.CUST_NO) {
 
             // 데이터 변환코드
@@ -1290,13 +1238,10 @@ async function writeCustomerMemoSprtRoomDlvrDtal(mapData, inputData) {
                 data.DLVR_DAY.trim() || '', 3, 0, 0, '',
                 0, 0, '', 0, ''
             ]
-            try {
-                await executeMySqlQuery(insertMemoMdclDayMemoQuery, insertValues);
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
 
+            promises.push(executeMySqlQuery(insertMemoMdclDayMemoQuery, insertValues));
         }
+    inputData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
@@ -1357,9 +1302,9 @@ async function main() {
         // 모든 회원의 CUSTOMERID : CUSTNO
         // 기존에 존재하는 회원은 데이터 업데이트, map에 해당 CUSTOMEID 넣어준다
         let custData = await fetchCustInfo();
-        await updatecustomerData(custData, custNoData);
+        // await updatecustomerData(custData, custNoData);
 
-        let mapData = await writecustomerData(custData, custNoData);
+        let mapData = await writecustomerData(custNoData, custData);
         custData = null;
         custNoData = null;
 
@@ -1369,68 +1314,80 @@ async function main() {
         // CUSTOMERPERSONAL 실행하지않고 스케줄부터시작코드
         // const mapData = await fetchCustomerPersonal();
 
-        // const mdclInfoData = await fetchMdclInfoData();
+        let mdclInfoData = await fetchMdclInfoData();
 
         // // 쿼리 조인 후 SPE_CNTN을 ASSEMENT에 작성완료
 
-        // const scheduleData = await writeSchedule(mapData, mdclInfoData);
+        const scheduleData = await writeSchedule(mapData, mdclInfoData);
 
-        // mapData = null;
+
+        mdclInfoData = null;
+        mapData = null;
 
         // // // paymentCard, paymentCash 동시수행
-        // const rcptData = await fetchRcptData()
+        let rcptData = await fetchRcptData()
 
-        // await writePaymentCardCash(scheduleData, rcptData);
+        await writePaymentCardCash(scheduleData, rcptData);
+
+        rcptData = null;
 
         // // writeDisease
-        // const sickData = await fetchSickData();
+        let sickData = await fetchSickData();
 
-        // await writeDisease(scheduleData, sickData);
+        await writeDisease(scheduleData, sickData);
+
+        sickData = null;
 
         // // // writeMedicalItem
-        // const prscData = await fetchPrscData();
+        let prscData = await fetchPrscData();
 
-        // await writeMedicalItem(scheduleData, prscData);
+        await writeMedicalItem(scheduleData, prscData);
 
-        // const mdclRsvData = await fetchMdclRsvData();
+        prscData = null;
 
-        // await writeCustomerMemoMdclRsv(scheduleData, mdclRsvData);
+        let mdclRsvData = await fetchMdclRsvData();
 
-        // const crCsttData = await fetchCrCsttDtalCntnData();
+        await writeCustomerMemoMdclRsv(scheduleData, mdclRsvData);
 
-        // await writeCustomerScheduleCrmCsttDtalCntn(scheduleData, crCsttData);
+        mdclRsvData = null;
 
-        // const stomCntnData = await fetchStomCntnData();
+        let crCsttData = await fetchCrCsttDtalCntnData();
 
-        // await writeCustomerScheduleStomCntn(scheduleData, stomCntnData);
+        await writeCustomerScheduleCrmCsttDtalCntn(scheduleData, crCsttData);
 
-        // const mdclDayMemoData = await fetchMdclDayMemoData();
+        crCsttData = null;
 
-        // await writeCustomerMemoMdclDayMemo(scheduleData, mdclDayMemoData);
+        let stomCntnData = await fetchStomCntnData();
+
+        await writeCustomerScheduleStomCntn(scheduleData, stomCntnData);
+
+        let mdclDayMemoData = await fetchMdclDayMemoData();
+
+        await writeCustomerMemoMdclDayMemo(scheduleData, mdclDayMemoData);
+
+        mdclDayMemoData = null;
 
         // // 업데이트
         // // await updateCustomerMemoMdclDayMemo(custNoData, mdclDayMemoData)
 
-        // const sprtRoomData = await fetchSprtRoomData();
+        let sprtRoomData = await fetchSprtRoomData();
 
-        // await writeCustomerMemoSprtRoomDlvrDtal(scheduleData, sprtRoomData);
+        await writeCustomerMemoSprtRoomDlvrDtal(scheduleData, sprtRoomData);
 
         // 업데이트
         // await updateCustomerMemoSprtRoomDlvrDtal(custNoData, sprtRoomData)
 
         // scheduleId 업데이트
 
-        // 해당 데이터 가져오기
-        const scheduleIdData = await fetchScheduleId();
 
-        const sickData = await fetchSickData();
 
-        await updateDisease(custNoData,scheduleIdData,sickData);
+        // const sickData = await fetchSickData();
 
-        const prscData = await fetchPrscData();
+        // await updateDisease(custNoData,scheduleIdData,sickData);
 
-        await updateMedicalItem(custNoData,scheduleIdData,prscData);
+        // const prscData = await fetchPrscData();
 
+        // await updateMedicalItem(custNoData, scheduleIdData, prscData);
 
 
     } catch (error) {
