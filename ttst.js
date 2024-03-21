@@ -185,7 +185,8 @@ async function writecustomerData(custData, custNoData) {
         RECVSMSDATE = ?, RECVAD = ?, RECVSMS = ?
     WHERE CUSTNO = ?`;
 
-    const promises = custData.map(async data => {
+    const promises = [];
+    custData.forEach((data, index) => {
         if (data.CUST_NO) {
             // 데이터 변환 및 준비 로직
             const ctznnoPrefix = Number(data.CTZN_NO.slice(0, 2)) > 24 ? '19' : '20';
@@ -223,32 +224,27 @@ async function writecustomerData(custData, custNoData) {
             // 기존 회원 확인 쿼리(기존의 것을 확인해야하므로 SELECT문으로 확인)
             // const checkCustomerExistsQuery = `SELECT CUSTOMERID FROM tcustomerpersonal WHERE CUSTNO = ?`;
 
-            try {
-                // const [existingCustomer] = await executeMySqlQuery(checkCustomerExistsQuery, [data.CUST_NO]);
+            // const [existingCustomer] = await executeMySqlQuery(checkCustomerExistsQuery, [data.CUST_NO]);
 
-                // 키가 존재하면
-                if (data.CUST_NO in custNoData) {
-                    // 기존 회원이 있으면, Map에 저장
-                    // 기존회원이 존재하면 해당 데이터 update
-                    await executeMySqlQuery(updateCustomerQuery, updateValues);
-                } else {
-                    // 존재하지 않는 경우, 새로운 회원 데이터 삽입
-                    const result = await executeMySqlQuery(insertCustomerQuery, values);
+            // 키가 존재하면
+            if (data.CUST_NO in custNoData) {
+                // 기존 회원이 있으면, Map에 저장
+                // 기존회원이 존재하면 해당 데이터 update
+                promises.push(executeMySqlQuery(updateCustomerQuery, updateValues));
+            } else {
+                // 존재하지 않는 경우, 새로운 회원 데이터 삽입
+                promises.push(
+                    executeMySqlQuery(insertCustomerQuery, values).then((result) => {
                     custNoData[data.CUST_NO] = result.insertId;
-                }
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
+                    })
+                );
             }
         }
+        custData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림(병렬처리)
-    const results = await Promise.allSettled(promises);
-    results.forEach((result, index) => {
-        if (result.status === "rejected") {
-            console.log(`작업 ${index} 실패:`, result.reason);
-        }
-    });
+    await Promise.allSettled(promises);
     console.log('writecustomerData 완료')
 
     // costomerId에 CUST_NO : CUSTOMERID(PK) 설정
@@ -1375,8 +1371,8 @@ async function main() {
         let custData = await fetchCustInfo();
         await updatecustomerData(custData, custNoData);
 
-        // let mapData = await writecustomerData(custData, custNoData);
-        // custData = null;
+        let mapData = await writecustomerData(custData, custNoData);
+        custData = null;
         // custNoData = null;
 
         // scheduleData까지의 map return
