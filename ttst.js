@@ -754,7 +754,8 @@ async function updateMedicalItem(custData, scheduleData, inputData) {
       ?, ?, ?
     )`;
 
-    const promises = inputData.map(async data => {
+    const promises = [];
+    inputData.forEach((data, index) => {
         if (data.CUST_NO) {
 
             const customerId = custData[data.CUST_NO];
@@ -773,15 +774,9 @@ async function updateMedicalItem(custData, scheduleData, inputData) {
                 '', 0, ''
             ]
 
-
-            try {
-                await executeMySqlQuery(insertMedicalQuery, insertValues);
-
-            } catch (err) {
-                console.error('Customer 데이터 삽입 중 오류 발생:', err);
-            }
-
+            promises.push(executeMySqlQuery(insertMedicalQuery, insertValues));
         }
+        inputData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
