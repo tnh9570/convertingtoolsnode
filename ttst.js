@@ -83,8 +83,9 @@ async function fetchCustomerCustNo() {
     `
     try {
         let result = await executeMySqlQuery(insertQuery);
-        result.forEach(row => {
+        result.forEach((row, index) => {
             data[row.CUSTNO] = row.CUSTOMERID;
+            result[index] = null;
         })
         result = null;
     } catch (err) {
@@ -1388,8 +1389,8 @@ async function main() {
         // mapData => costomerId
         // 모든 회원의 CUSTOMERID : CUSTNO
         // 기존에 존재하는 회원은 데이터 업데이트, map에 해당 CUSTOMEID 넣어준다
-        // let custData = await fetchCustInfo();
-        // await updatecustomerData(custData, custNoData);
+        let custData = await fetchCustInfo();
+        await updatecustomerData(custData, custNoData);
 
         // let mapData = await writecustomerData(custData, custNoData);
         // custData = null;
