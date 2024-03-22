@@ -12,6 +12,7 @@ const { fetchCustInfo,
     fetchMdclDayMemoData,
     fetchSprtRoomData } = require('./fetchdata.js')
 
+// 테스트용 100개 데이터
 // const { fetchCustInfo,
 //     fetchMdclInfoData,
 //     fetchRcptData,
