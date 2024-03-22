@@ -28,10 +28,10 @@ const { fetchCustInfo,
 const orgId = 1291;
 
 const pool = mysql.createPool({
-    host: '127.0.0.1',
-    user: 'root',
-    password: '0000',
-    database: 'h00033',
+    host: '192.168.0.20',
+    user: 'vegas',
+    password: '!mgrsol123',
+    database: '',
     waitForConnections: true,
     connectionLimit: 100,
     queueLimit: 0
@@ -103,14 +103,14 @@ async function writecustomerData(custNoData, inputdata) {
     const promises = [];
     // 신규회원 insert쿼리
     const insertCustomerQuery = `
-    INSERT INTO tcustomerpersonal (
+    INSERT INTO TCUSTOMERPERSONAL (
                    CUSTNAME, CUSTNO, CUSTJN, CUSTDOB, DOBTYPE, CUSTGENDER, CUSTREGDATE, CUSTFSTDATE, CUSTADDR11, CRTIME, 
                    ORGID, CUSTCELL1, CUSTCELL2, CUSTPHONE1, CUSTPHONE2, CUSTEMAIL, CUSTWEB, CUSTSVCAREA,
                    CUSTTYPE, CUSTLVL, CUSTJOB, CUSTPIC, CUSTLSTDATE, CUSTZIPCODE1, CUSTADDR12, CUSTZIPCODE2,
                    CUSTADDR21, CUSTADDR22, CUSTZIPCODE3, CUSTADDR31, CUSTADDR32, CUSTNICKNAME, CUSTINTRE, CUSTINFX, 
                    SURNAME, CUSTMEMO, PERSONALINFO, INTROMEMO, STATE1, TITLE, ETHNICITY, ANNIVERSARY,
                    INSTYPE, TXAGREE, POLICYAGREE, ARBTAGREE, RECVSMSDATE,
-                   RECVAD, RECVSMS
+                   RECVAD, RECVSMS, FTTIME
                  ) VALUES (
                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
                    ?, ?, ?, ?, ?, ?, ?, ?,
@@ -118,12 +118,12 @@ async function writecustomerData(custNoData, inputdata) {
                    ?, ?, ?, ?, ?, ?, ?, ?, 
                    ?, ?, ?, ?, ?, ?, ?, ?,
                    ?, ?, ?, ?, ?,
-                   ?, ?)
+                   ?, ?, ?)
     `;
 
     // 기존회원 update쿼리
     const updateCustomerQuery = `
-    UPDATE tcustomerpersonal SET
+    UPDATE TCUSTOMERPERSONAL SET
         CUSTNAME = ?, CUSTJN = ?, CUSTDOB = ?, DOBTYPE = ?, CUSTGENDER = ?, 
         CUSTREGDATE = ?, CUSTFSTDATE = ?, CUSTADDR11 = ?, CRTIME = ?,ORGID = ?, 
         CUSTCELL1 = ?, CUSTCELL2 = ?, CUSTPHONE1 = ?, CUSTPHONE2 = ?, CUSTEMAIL = ?, 
@@ -133,7 +133,7 @@ async function writecustomerData(custNoData, inputdata) {
         CUSTNICKNAME = ?, CUSTINTRE = ?, CUSTINFX = ?,SURNAME = ?, CUSTMEMO = ?, 
         PERSONALINFO = ?, INTROMEMO = ?, STATE1 = ?, TITLE = ?, ETHNICITY = ?, 
         ANNIVERSARY = ?,INSTYPE = ?, TXAGREE = ?, POLICYAGREE = ?, ARBTAGREE = ?, 
-        RECVSMSDATE = ?, RECVAD = ?, RECVSMS = ?
+        RECVSMSDATE = ?, RECVAD = ?, RECVSMS = ?, FTTIME = ?
     WHERE CUSTNO = ?`;
 
 
@@ -157,7 +157,7 @@ async function writecustomerData(custNoData, inputdata) {
                 '', '', '', '', '', '', '', '',
                 '', '', 0, '', '', '', '', '',
                 '', 0, 0, 0, data.MDFY_DAY || '',
-                smsCheck || 0, smsCheck || 0
+                smsCheck || 0, smsCheck || 0, ''
             ]
 
             // update values
@@ -171,7 +171,7 @@ async function writecustomerData(custNoData, inputdata) {
                 '', '', '', '', '',
                 0, '', '', '', '',
                 '', '', 0, 0, 0,
-                data.MDFY_DAY || '', smsCheck || 0, smsCheck || 0, data.CUST_NO
+                data.MDFY_DAY || '', smsCheck || 0, smsCheck || 0, '', data.CUST_NO
             ]
             // 키가 존재하면 => 이미 회원이 존재한다 update진행
             if (data.CUST_NO in custNoData) {
@@ -213,7 +213,7 @@ async function writeSchedule(mapData, mdclInfoData) {
 
     // 스케줄 insert쿼리
     const insertSchedule = `
-    INSERT INTO tcustomerschedule (
+    INSERT INTO TCUSTOMERSCHEDULE (
         ORGID, CUSTOMERID, RESVTIME, RESVDATE, SCHEDULEDATE, 
         SCHEDULETIME, SCHEDULESTATUS, SCHDOCTOR, SCHNURSE,PHYSICALEMPL, 
         CONSULTTIME, SVCAREA, VISITTYPE, CONSULTNOTE, PROGRESSNOTE, 
@@ -223,8 +223,7 @@ async function writeSchedule(mapData, mdclInfoData) {
         EXRECALL, TRPLAN, ASSESSMENT, PAYMENTTYPE, MEDCOST, 
         PREGNANT, MIG, NOCON, NOCALC,MODHIST, 
         SUMMARY, TREATMENTROOM, SVCAREA2, REGTYPE, SCHTYPE,
-        COLOR, ROOMNO, DURATION, SELFCHCKSTATUS, HOMENURSE,
-        ACUPUNCTURE 
+        COLOR, ROOMNO, DURATION, SELFCHCKSTATUS
     ) VALUES (
         ?, ?, ?, ?, ?, 
         ?, ?, ?, ?, ?, 
@@ -235,21 +234,22 @@ async function writeSchedule(mapData, mdclInfoData) {
         ?, ?, ?, ?, ?, 
         ?, ?, ?, ?, ?, 
         ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?
+        ?, ?, ?, ?
     )
     `;
-    let isMig;
+    let isMig = 0;
 
     const promises = [];
 
     // 현재 날짜가 컨버팅 날짜 이후인지 판별
     // 현재 날짜가 컨버팅 날짜 이후이면 true아니면 false
-    if (isAfter20240321()) {
-        isMig = 0;
-    } else {
-        isMig = 1;
-    }
+    // if (isAfter20240321()) {
+    //     isMig = 0;
+    // } else {
+    //     isMig = 1;
+    // }
+
+
     const currentDateTimeString = getCurrentDateTimeString();
 
     mdclInfoData.forEach((data, index) => {
@@ -270,20 +270,20 @@ async function writeSchedule(mapData, mdclInfoData) {
                 currentDateTimeString, 0, 0, data.CHRG_DCTR || '', 0,
                 0, 0, '', 0, 0,
                 0, data.MDCL_ROOM || '', data.SPE_CNTN || '001', customerId || '', Number(data.MDCL_SEQNO) || 0,
-                0, isMig, 0, 0, '',
+                0, 0, isMig, 0, '',
                 '', 0, 0, 0, 0,
-                '', 0, 0, 0, '',
-                ''
+                '', 0, 0, 0
             ];
-            // executeMySqlQuery를 호출하고, then 메서드를 사용하여 결과를 처리
-            promises.push(executeMySqlQuery(insertSchedule, insertValues).then((result) => {
-                //  scheduleId는 customerId와 ENTR_DAY의 쌍의 값으로 찾는다
-                scheduleId[`${customerId},${data.ENTR_DAY}`] = result.insertId;
-                scheduleDate[result.insertId] = data.MDCL_DAY;
-            }).catch((error) => {
-                console.error("Error executing query:", error);
-            }));
-
+            if (customerId) {
+                // executeMySqlQuery를 호출하고, then 메서드를 사용하여 결과를 처리
+                promises.push(executeMySqlQuery(insertSchedule, insertValues).then((result) => {
+                    //  scheduleId는 customerId와 ENTR_DAY의 쌍의 값으로 찾는다
+                    scheduleId[`${customerId},${data.ENTR_DAY}`] = result.insertId;
+                    scheduleDate[result.insertId] = data.MDCL_DAY;
+                }).catch((error) => {
+                    console.error("Error executing query:", error);
+                }));
+            }
         }
         mdclInfoData[index] = null;
     });
@@ -349,10 +349,9 @@ async function writePaymentCardCash(mapData, inputData) {
                 0, 0, ''
             ]
 
-
-            promises.push(executeMySqlQuery(insertPaymentCardQuery, insertValues))
-
-
+            if (curScheduleId) {
+                promises.push(executeMySqlQuery(insertPaymentCardQuery, insertValues));
+            }
         } else if (data.CASH_RCPT_AMT > 0 && data.CUST_NO) { // CASH_RCPT_AMT > 0일경우 위의로직 수행 하는데 PAYMENTCODE를 "M00"으로 insert
             const customerId = getCostomerId[data.CUST_NO];
 
@@ -369,9 +368,9 @@ async function writePaymentCardCash(mapData, inputData) {
                 0, 0, currentDateTimeString || '', '', 0,
                 0, 0, ''
             ]
-
-            promises.push(executeMySqlQuery(insertPaymentCardQuery, insertValues));
-
+            if (curScheduleId) {
+                promises.push(executeMySqlQuery(insertPaymentCardQuery, insertValues));
+            }
         }
         inputData[index] = null;
     });
@@ -438,8 +437,9 @@ async function writeDisease(mapData, inputData) {
                 curScheduleId || 0, orgId, data.USE_SICK_CD.toString().replace(/\./g, "") || '', data.DISEASETYPE || 0, diseasename,
                 custno, diseasenameEn, 0, '', data.SORT_NO
             ]
-
-            promises.push(executeMySqlQuery(insertDiseaseQuery, insertValues));
+            if (curScheduleId) {
+                promises.push(executeMySqlQuery(insertDiseaseQuery, insertValues));
+            };
         }
         inputData[index] = null;
     });
@@ -495,7 +495,9 @@ async function writeMedicalItem(mapData, inputData) {
                 '', '', '', 0, '',
                 '', 0, ''
             ]
-            promises.push(executeMySqlQuery(insertMedicalQuery, insertValues));
+            if (curScheduleId) {
+                promises.push(executeMySqlQuery(insertMedicalQuery, insertValues));
+            }
         }
         inputData[index] = null;
     });
@@ -518,18 +520,18 @@ async function writeCustomerMemoMdclRsv(mapData, inputData) {
 
     const currentDateTimeString = getCurrentDateTimeString();
 
-    let isMig;
+    let isMig = 0;
     // 현재 날짜가 컨버팅 날짜 이후인지 판별
     // 현재 날짜가 컨버팅 날짜 이후이면 true아니면 false
-    if (isAfter20240321()) {
-        isMig = 0;
-    } else {
-        isMig = 1;
-    }
+    // if (isAfter20240321()) {
+    //     isMig = 0;
+    // } else {
+    //     isMig = 1;
+    // }
 
     // PAYMENT insert
     const insertMemoMdclRsvQuery = `
-    INSERT INTO tcustomerschedule (
+    INSERT INTO TCUSTOMERSCHEDULE (
         ORGID, CUSTOMERID, RESVTIME, RESVDATE, SCHEDULEDATE, 
         SCHEDULETIME, SCHEDULESTATUS, SCHDOCTOR, SCHNURSE,PHYSICALEMPL, 
         CONSULTTIME, SVCAREA, VISITTYPE, CONSULTNOTE, PROGRESSNOTE, 
@@ -539,7 +541,7 @@ async function writeCustomerMemoMdclRsv(mapData, inputData) {
         EXRECALL, TRPLAN, ASSESSMENT, PAYMENTTYPE, MEDCOST, 
         PREGNANT, MIG, NOCON, NOCALC, MODHIST, 
         SUMMARY, TREATMENTROOM, SVCAREA2, REGTYPE, SCHTYPE,
-        COLOR, ROOMNO, DURATION, SELFCHCKSTATUS, HOMENURSE
+        COLOR, ROOMNO, DURATION, SELFCHCKSTATUS
     ) VALUES (
         ?, ?, ?, ?, ?, 
         ?, ?, ?, ?, ?, 
@@ -550,7 +552,7 @@ async function writeCustomerMemoMdclRsv(mapData, inputData) {
         ?, ?, ?, ?, ?, 
         ?, ?, ?, ?, ?, 
         ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?
+        ?, ?, ?, ?
     )`;
 
     const promises = [];
@@ -574,10 +576,11 @@ async function writeCustomerMemoMdclRsv(mapData, inputData) {
                 0, data.MDCL_ROOM || '', '', customerId || '', data.MDCL_SEQNO || 0,
                 0, isMig, 0, 0, '',
                 '', 0, 0, 0, 0,
-                '', 0, 0, 0, ''
+                '', 0, 0, 0
             ]
-
-            promises.push(executeMySqlQuery(insertMemoMdclRsvQuery, insertValues));
+            if (customerId) {
+                promises.push(executeMySqlQuery(insertMemoMdclRsvQuery, insertValues));
+            }
         }
         inputData[index] = null;
     });
@@ -595,19 +598,19 @@ async function writeCustomerScheduleCrmCsttDtalCntn(mapData, inputData) {
     const getCostomerId = mapData.get('costomerId');
 
     const currentDateTimeString = getCurrentDateTimeString();
-    let isMig;
+    let isMig = 0;
 
     // 현재 날짜가 컨버팅 날짜 이후인지 판별
     // 현재 날짜가 컨버팅 날짜 이후이면 true아니면 false
-    if (isAfter20240321()) {
-        isMig = 0;
-    } else {
-        isMig = 1;
-    }
+    // if (isAfter20240321()) {
+    //     isMig = 0;
+    // } else {
+    //     isMig = 1;
+    // }
 
     // PAYMENT insert
     const insertCrmCsttDtalCntnQuery = `
-    INSERT INTO tcustomerschedule (
+    INSERT INTO TCUSTOMERSCHEDULE (
         ORGID, CUSTOMERID, RESVTIME, RESVDATE, SCHEDULEDATE, 
         SCHEDULETIME, SCHEDULESTATUS, SCHDOCTOR, SCHNURSE, PHYSICALEMPL, 
         CONSULTTIME, SVCAREA, VISITTYPE, CONSULTNOTE, PROGRESSNOTE, 
@@ -617,14 +620,14 @@ async function writeCustomerScheduleCrmCsttDtalCntn(mapData, inputData) {
         EXRECALL, TRPLAN, ASSESSMENT, PAYMENTTYPE, MEDCOST, 
         PREGNANT, MIG, NOCON, NOCALC, MODHIST, 
         SUMMARY, TREATMENTROOM, SVCAREA2, REGTYPE, SCHTYPE,
-        COLOR, ROOMNO, DURATION, SELFCHCKSTATUS, HOMENURSE
+        COLOR, ROOMNO, DURATION, SELFCHCKSTATUS
     ) VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?
+        ?, ?, ?, ?
     )`;
 
     const promises = [];
@@ -648,10 +651,11 @@ async function writeCustomerScheduleCrmCsttDtalCntn(mapData, inputData) {
                 0, '', '', '', 0,
                 0, isMig, 0, 0, '',
                 '', 0, 0, 0, 0,
-                '', 0, 0, 0, ''
+                '', 0, 0, 0
             ]
-
-            promises.push(executeMySqlQuery(insertCrmCsttDtalCntnQuery, insertValues));
+            if (customerId) {
+                promises.push(executeMySqlQuery(insertCrmCsttDtalCntnQuery, insertValues));
+            }
         }
         inputData[index] = null;
     });
@@ -669,19 +673,19 @@ async function writeCustomerScheduleStomCntn(mapData, inputData) {
     const getCostomerId = mapData.get('costomerId');
 
     const currentDateTimeString = getCurrentDateTimeString();
-    let isMig;
+    let isMig = 0;
 
     // 현재 날짜가 컨버팅 날짜 이후인지 판별
     // 현재 날짜가 컨버팅 날짜 이후이면 true아니면 false
-    if (isAfter20240321()) {
-        isMig = 0;
-    } else {
-        isMig = 1;
-    }
+    // if (isAfter20240321()) {
+    //     isMig = 0;
+    // } else {
+    //     isMig = 1;
+    // }
 
     // PAYMENT insert
     const insertCrmCsttDtalCntnQuery = `
-    INSERT INTO tcustomerschedule (
+    INSERT INTO TCUSTOMERSCHEDULE (
         ORGID, CUSTOMERID, RESVTIME, RESVDATE, SCHEDULEDATE, 
         SCHEDULETIME, SCHEDULESTATUS, SCHDOCTOR, SCHNURSE, PHYSICALEMPL, 
         CONSULTTIME, SVCAREA, VISITTYPE, CONSULTNOTE, PROGRESSNOTE, 
@@ -691,14 +695,14 @@ async function writeCustomerScheduleStomCntn(mapData, inputData) {
         EXRECALL, TRPLAN, ASSESSMENT, PAYMENTTYPE, MEDCOST, 
         PREGNANT, MIG, NOCON, NOCALC, MODHIST, 
         SUMMARY, TREATMENTROOM, SVCAREA2, REGTYPE, SCHTYPE,
-        COLOR, ROOMNO, DURATION, SELFCHCKSTATUS, HOMENURSE
+        COLOR, ROOMNO, DURATION, SELFCHCKSTATUS
     ) VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?
+        ?, ?, ?, ?
     )`;
 
     const promises = [];
@@ -722,10 +726,11 @@ async function writeCustomerScheduleStomCntn(mapData, inputData) {
                 0, '', '', '', data.MDCL_SEQNO || '',
                 0, isMig, 0, 0, '',
                 '', 0, 0, 0, 0,
-                '', 0, 0, 0, ''
+                '', 0, 0, 0
             ]
-            promises.push(executeMySqlQuery(insertCrmCsttDtalCntnQuery, insertValues));
-
+            if (customerId) {
+                promises.push(executeMySqlQuery(insertCrmCsttDtalCntnQuery, insertValues));
+            }
         }
         inputData[index] = null;
     });
@@ -770,7 +775,9 @@ async function writeCustomerMemoMdclDayMemo(mapData, inputData) {
                 data.MDCL_DAY.trim() || '', 1, 0, 0, '',
                 0, 0, '', 0, ''
             ]
-            promises.push(executeMySqlQuery(insertMemoMdclDayMemoQuery, insertValues));
+            if (customerId) {
+                promises.push(executeMySqlQuery(insertMemoMdclDayMemoQuery, insertValues));
+            }
         }
         inputData[index] = null;
     });
@@ -783,6 +790,7 @@ async function writeCustomerMemoMdclDayMemo(mapData, inputData) {
     return mapData;
 }
 async function writeCustomerMemoSprtRoomDlvrDtal(mapData, inputData) {
+    const getCostomerId = mapData.get('costomerId');
 
     // insert
     const insertMemoMdclDayMemoQuery = `
@@ -798,6 +806,7 @@ async function writeCustomerMemoSprtRoomDlvrDtal(mapData, inputData) {
     promises = [];
     inputData.forEach((data, index) => {
         if (data.CUST_NO) {
+            const customerId = getCostomerId[data.CUST_NO];
 
             // 데이터 변환코드
             let memostr = String(data.DLVR_DTAL).trim();
@@ -806,12 +815,13 @@ async function writeCustomerMemoSprtRoomDlvrDtal(mapData, inputData) {
 
 
             const insertValues = [
-                orgId, '', '', data.CUST_NO || 0, memostr || '',
+                orgId, '', '', customerId || 0, memostr || '',
                 data.DLVR_DAY.trim() || '', 3, 0, 0, '',
                 0, 0, '', 0, ''
             ]
-
-            promises.push(executeMySqlQuery(insertMemoMdclDayMemoQuery, insertValues));
+            if (customerId) {
+                promises.push(executeMySqlQuery(insertMemoMdclDayMemoQuery, insertValues));
+            }
         }
         inputData[index] = null;
     });
@@ -851,21 +861,21 @@ async function main() {
         mdclInfoData = null;
         mapData = null;
 
-        // // // paymentCard, paymentCash 동시수행
+        // // // // paymentCard, paymentCash 동시수행
         let rcptData = await fetchRcptData()
 
         await writePaymentCardCash(scheduleData, rcptData);
 
         rcptData = null;
 
-        // // writeDisease
+        // writeDisease
         let sickData = await fetchSickData();
 
         await writeDisease(scheduleData, sickData);
 
         sickData = null;
 
-        // // // writeMedicalItem
+        // writeMedicalItem
         let prscData = await fetchPrscData();
 
         await writeMedicalItem(scheduleData, prscData);
