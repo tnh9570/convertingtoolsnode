@@ -381,8 +381,6 @@ async function writeSchedule(mapData, mdclInfoData) {
     mapData.set('scheduleId', scheduleId);
     mapData.set('scheduleDate', scheduleDate);
 
-    console.log(mapData.get('scheduleId'));
-
     return mapData
 }
 
