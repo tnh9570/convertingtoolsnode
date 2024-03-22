@@ -1,18 +1,6 @@
 const sql = require('mssql');
 const mysql = require('mysql2/promise');
 
-// const { fetchCustInfo,
-//     fetchMdclInfoData,
-//     fetchRcptData,
-//     fetchSickData,
-//     fetchPrscData,
-//     fetchMdclRsvData,
-//     fetchCrCsttDtalCntnData,
-//     fetchStomCntnData,
-//     fetchMdclDayMemoData,
-//     fetchSprtRoomData } = require('./fetchdata.js')
-
-// 테스트용 100개 데이터
 const { fetchCustInfo,
     fetchMdclInfoData,
     fetchRcptData,
@@ -22,7 +10,19 @@ const { fetchCustInfo,
     fetchCrCsttDtalCntnData,
     fetchStomCntnData,
     fetchMdclDayMemoData,
-    fetchSprtRoomData } = require('./fetchTest.js')
+    fetchSprtRoomData } = require('./fetchdata.js')
+
+// 테스트용 100개 데이터
+// const { fetchCustInfo,
+//     fetchMdclInfoData,
+//     fetchRcptData,
+//     fetchSickData,
+//     fetchPrscData,
+//     fetchMdclRsvData,
+//     fetchCrCsttDtalCntnData,
+//     fetchStomCntnData,
+//     fetchMdclDayMemoData,
+//     fetchSprtRoomData } = require('./fetchTest.js')
 
 // 전역으로 사용할 orgId
 const orgId = 1291;
