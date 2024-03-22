@@ -214,3 +214,69 @@ const promises = inputData.map(async data => {
 
     }
 });
+
+
+// 기존방식
+// async function updateMedicalItem(mapData, inputData) {
+//     // CUST_NO : CUSTOMERID
+//     const getCostomerId = mapData.get('costomerId');
+
+//     // key: [방문스케줄ID, 방문날짜], value : 스케줄아이디
+//     const getScheduleId = mapData.get('scheduleId');
+
+//     // PAYMENT insert
+//     const insertMedicalQuery = `
+//     INSERT INTO TSALEITEM (
+//       SCHEDULEID,ITEMNAME,ITEMCODE,UNITPRICE,TOTALPRICE,
+//       CATEGORY,NODAYS,DAILYDOSE,DAILYAPP,DISCOUNT,
+//       ORGID,ACUPOINT,POSTURE,DESCRIPTION,SPCODE,
+//       SPDETAIL,EXCLAIM,DURID,INS100,MAXPRICE,
+//       PRESCMEMO,ACODE,SFLAG,TAX,SAMPLECODE,
+//       MEMO,SEQ,DOSAGE
+//     ) VALUES (
+//       ?, ?, ?, ?, ?,
+//       ?, ?, ?, ?, ?,
+//       ?, ?, ?, ?, ?,
+//       ?, ?, ?, ?, ?,
+//       ?, ?, ?, ?, ?,
+//       ?, ?, ?
+//     )`;
+
+//     const promises = inputData.map(async data => {
+//         if (data.CUST_NO) {
+
+//             const customerId = getCostomerId[data.CUST_NO];
+
+//             const curScheduleId = getScheduleId[`${customerId},${data.ENTR_DAY}`];
+
+//             // 데이터 변환코드
+
+//             const insertValues = [
+//                 curScheduleId || 0, data.ITEMTITLE || 0, data.ITEMCODE || '', data.CLAIM_AMT || 0, 0,
+//                 0, data.TOT_MDCT_QTY || 0, data.MDCT_QTY || 0, data.MDCT_CNT || 0, 0,
+//                 orgId, '', '', '', String(data.CUST_NO).trim() || '',
+//                 '', 0, 0, 0, 0,
+//                 '', '', '', 0, '',
+//                 '', 0, ''
+//             ]
+
+
+//             try {
+//                 console.log(`updateMedicalItem 시작 ${data.CUST_NO}`);
+//                 await executeMySqlQuery(insertMedicalQuery, insertValues);
+//                 console.log(`updateMedicalItem 완료 ${data.CUST_NO}`);
+
+//             } catch (err) {
+//                 console.error('Customer 데이터 삽입 중 오류 발생:', err);
+//             }
+
+//         }
+//     });
+
+//     // 모든 프로미스가 완료될 때까지 기다림
+//     await Promise.all(promises);
+
+//     console.log('writeMedicalItem 완료');
+
+//     return mapData;
+// }
