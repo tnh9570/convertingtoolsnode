@@ -10,7 +10,18 @@ const { fetchCustInfo,
     fetchCrCsttDtalCntnData,
     fetchStomCntnData,
     fetchMdclDayMemoData,
-    fetchSprtRoomData } = require('./fetchTest.js')
+    fetchSprtRoomData } = require('./fetchdata.js')
+
+// const { fetchCustInfo,
+//     fetchMdclInfoData,
+//     fetchRcptData,
+//     fetchSickData,
+//     fetchPrscData,
+//     fetchMdclRsvData,
+//     fetchCrCsttDtalCntnData,
+//     fetchStomCntnData,
+//     fetchMdclDayMemoData,
+//     fetchSprtRoomData } = require('./fetchTest.js')
 
 // 전역으로 사용할 orgId
 const orgId = 1291;
@@ -429,7 +440,7 @@ async function writeDisease(mapData, inputData) {
 
             promises.push(executeMySqlQuery(insertDiseaseQuery, insertValues));
         }
-    inputData[index] = null;
+        inputData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
@@ -485,7 +496,7 @@ async function writeMedicalItem(mapData, inputData) {
             ]
             promises.push(executeMySqlQuery(insertMedicalQuery, insertValues));
         }
-    inputData[index] = null;
+        inputData[index] = null;
     });
 
     // 모든 프로미스가 완료될 때까지 기다림
