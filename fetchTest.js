@@ -88,10 +88,7 @@ async function fetchRcptData() {
         // 필요한 컬럼만 선택하도록 쿼리 수정
         const result = await sql.query(`
             SELECT TOP 100
-                CUST_NO, 
-                ENTR_DAY, 
-                CARD_RCPT_AMT, 
-                CASH_RCPT_AMT
+                *
             FROM RCPT_INFO
         `);
         return result.recordset;

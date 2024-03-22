@@ -69,9 +69,11 @@ async function fetchMdclInfoData() {
             MI.MDCL_ROOM, 
             MDS.SPE_CNTN,
             MI.MDCL_SEQNO,
-            MDS.ENTR_DAY
+            MDS.ENTR_DAY,
+            CIL.MEMO
         FROM MDCL_INFO MI
         LEFT JOIN MDCL_DAY_SPE_CNTN MDS ON MI.CUST_NO = MDS.CUST_NO AND MI.ENTR_DAY = MDS.ENTR_DAY
+        LEFT JOIN CUST_INFO_LOG CIL ON MI.CUST_NO = CIL.CUST_NO
     `);
         return result.recordset;
     } catch (err) {
@@ -88,10 +90,7 @@ async function fetchRcptData() {
         // 필요한 컬럼만 선택하도록 쿼리 수정
         const result = await sql.query(`
             SELECT 
-                CUST_NO, 
-                ENTR_DAY, 
-                CARD_RCPT_AMT, 
-                CASH_RCPT_AMT
+                *
             FROM RCPT_INFO
         `);
         return result.recordset;
